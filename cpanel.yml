@@ -1,0 +1,38 @@
+---
+deployment:
+  tasks:
+    # Set deployment path for cafe.powergamings.com (update if your docroot is different)
+    - export DEPLOYPATH=/home/powergqg/cafe.powergamings.com/
+    
+    # Create directory if it doesn't exist
+    - mkdir -p $DEPLOYPATH
+    
+    # Copy backend files
+    - /bin/cp -R *.js $DEPLOYPATH
+    - /bin/cp -R package*.json $DEPLOYPATH
+    - /bin/cp -R config/ $DEPLOYPATH
+    - /bin/cp -R controllers/ $DEPLOYPATH
+    - /bin/cp -R middleware/ $DEPLOYPATH
+    - /bin/cp -R models/ $DEPLOYPATH
+    - /bin/cp -R routes/ $DEPLOYPATH
+    - /bin/cp -R scripts/ $DEPLOYPATH
+    
+    # Copy environment file for production
+    - /bin/cp .env.production $DEPLOYPATH/.env
+    
+    # Navigate to deployment directory
+    - cd $DEPLOYPATH
+    
+    # Install backend dependencies
+    - npm install --production --no-optional
+    
+    # Build and copy frontend
+    - cd /home/powergqg/repositories/cafe_bakery_proj/frontend
+    - npm install
+    - npm run build
+    - /bin/cp -R build/* /home/powergqg/cafe.powergamings.com/
+    
+    # Set proper permissions
+    - chmod -R 755 $DEPLOYPATH
+    - chmod -R 644 $DEPLOYPATH/*.js
+    - chmod +x $DEPLOYPATH/server.js

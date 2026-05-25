@@ -1,0 +1,18 @@
+node_modules
+frontend/node_modules
+frontend/build
+
+.env
+.git
+.gitignore
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional local runtime data
+/data
+
+# OS/editor junk
+.DS_Store
+Thumbs.db

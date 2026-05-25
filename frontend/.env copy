@@ -1,0 +1,2 @@
+# Branch identifier – change this value to distinguish between branches
+REACT_APP_BRANCH_NAME=Branch 2

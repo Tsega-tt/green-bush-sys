@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "number": 1,
+    "status": "occupied",
+    "capacity": 4,
+    "waiter_name": "Kiya",
+    "current_order_id": 670
+  },
+  {
+    "id": 2,
+    "number": 2,
+    "status": "occupied",
+    "capacity": 2,
+    "waiter_name": "Tadla",
+    "current_order_id": 608
+  },
+  {
+    "id": 3,
+    "number": 3,
+    "status": "occupied",
+    "capacity": 6,
+    "waiter_name": "Kiya",
+    "current_order_id": 614
+  },
+  {
+    "id": 4,
+    "number": 4,
+    "status": "available",
+    "capacity": 4,
+    "waiter_name": null,
+    "current_order_id": null
+  },
+  {
+    "id": 5,
+    "number": 5,
+    "status": "occupied",
+    "capacity": 2,
+    "waiter_name": "Tadla",
+    "current_order_id": 607
+  },
+  {
+    "id": 6,
+    "number": 6,
+    "status": "occupied",
+    "capacity": 4,
+    "waiter_name": "Tadla",
+    "current_order_id": 611
+  },
+  {
+    "id": 7,
+    "number": 7,
+    "status": "available",
+    "capacity": 8,
+    "waiter_name": null,
+    "current_order_id": null
+  },
+  {
+    "id": 8,
+    "number": 8,
+    "status": "occupied",
+    "capacity": 2,
+    "waiter_name": "Tadla",
+    "current_order_id": 617
+  },
+  {
+    "id": 9,
+    "number": 9,
+    "status": "occupied",
+    "capacity": 4,
+    "waiter_name": "Tadla",
+    "current_order_id": 610
+  },
+  {
+    "id": 10,
+    "number": 10,
+    "status": "occupied",
+    "capacity": 6,
+    "waiter_name": "Selam",
+    "current_order_id": 579
+  },
+  {
+    "id": 11,
+    "number": 11,
+    "status": "occupied",
+    "capacity": 2,
+    "waiter_name": "Selam",
+    "current_order_id": 581
+  },
+  {
+    "id": 12,
+    "number": 12,
+    "status": "occupied",
+    "capacity": 4,
+    "waiter_name": "test",
+    "current_order_id": 677
+  },
+  {
+    "id": 13,
+    "number": 13,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "Bayush",
+    "current_order_id": 605
+  },
+  {
+    "id": 14,
+    "number": 14,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "test",
+    "current_order_id": 678
+  },
+  {
+    "id": 15,
+    "number": 15,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "test",
+    "current_order_id": 676
+  },
+  {
+    "id": 16,
+    "number": 16,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "test",
+    "current_order_id": 675
+  },
+  {
+    "id": 17,
+    "number": 17,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "test",
+    "current_order_id": 679
+  },
+  {
+    "id": 18,
+    "number": 18,
+    "status": "occupied",
+    "capacity": 8,
+    "waiter_name": "test",
+    "current_order_id": 672
+  },
+  {
+    "id": 19,
+    "number": 19,
+    "status": "available",
+    "capacity": 8,
+    "waiter_name": null,
+    "current_order_id": null
+  },
+  {
+    "id": 20,
+    "number": 20,
+    "status": "available",
+    "capacity": 8,
+    "waiter_name": null,
+    "current_order_id": null
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "short_name": "Bakery Café",
+  "name": "Bakery & Café Management System",
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f2801f",
+  "background_color": "#ffffff"
+}
