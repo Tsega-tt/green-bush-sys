@@ -51,10 +51,8 @@ import PurchaseRequisition from './pages/PurchaseRequisition';
 
 // PostgreSQL inventory module (Phases 0-7)
 import InventoryDashboard from './pages/inventory/InventoryDashboard';
-import InventoryBalances from './pages/inventory/InventoryBalances';
 import InventoryTransfers from './pages/inventory/Transfers';
 import InventoryApprovals from './pages/inventory/Approvals';
-import InventoryAlerts from './pages/inventory/Alerts';
 import PurchasingDashboard from './pages/inventory/PurchasingDashboard';
 import PurchaseRequests from './pages/inventory/PurchaseRequests';
 import PurchaseOrders from './pages/inventory/PurchaseOrders';
@@ -63,15 +61,8 @@ import Suppliers from './pages/inventory/Suppliers';
 import Stores from './pages/inventory/Stores';
 import ItemsMaster from './pages/inventory/ItemsMaster';
 import RecipeBuilder from './pages/inventory/RecipeBuilder';
-import ServingSizes from './pages/inventory/ServingSizes';
 import CafeMenuManagement from './pages/cafe/MenuManagement';
 import Waste from './pages/inventory/Waste';
-import StockCounts from './pages/inventory/StockCounts';
-import DailyClosing from './pages/inventory/DailyClosing';
-import Kegs from './pages/inventory/Kegs';
-import InventoryReports from './pages/inventory/Reports';
-import BatchExpiry from './pages/inventory/BatchExpiry';
-import AuditLog from './pages/inventory/AuditLog';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -269,14 +260,6 @@ const DashboardRouter = () => {
           }
         />
         <Route
-          path="inventory-pg/balances"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <InventoryBalances />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="inventory-pg/transfers"
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
@@ -289,14 +272,6 @@ const DashboardRouter = () => {
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
               <InventoryApprovals />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/alerts"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <InventoryAlerts />
             </ProtectedRoute>
           }
         />
@@ -365,14 +340,6 @@ const DashboardRouter = () => {
           }
         />
         <Route
-          path="inventory-pg/serving-sizes"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <ServingSizes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="cafe/menu"
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner']}>
@@ -385,54 +352,6 @@ const DashboardRouter = () => {
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
               <Waste />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/stock-counts"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <StockCounts />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/daily-closing"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <DailyClosing />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/kegs"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <Kegs />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/reports"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
-              <InventoryReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/batches"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
-              <BatchExpiry />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory-pg/audit-log"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'owner']}>
-              <AuditLog />
             </ProtectedRoute>
           }
         />
