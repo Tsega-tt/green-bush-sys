@@ -18203,5 +18203,88 @@
     "updated_at": "2026-04-22T12:56:40.507Z",
     "print_claimed": false,
     "print_claimed_at": null
+  },
+  {
+    "id": 680,
+    "type": "cafe",
+    "table_number": 5,
+    "employee_id": 1,
+    "waiter_name": "Admin User",
+    "employee_name": "Admin User",
+    "items": [
+      {
+        "menu_item_id": 1,
+        "menu_item_name": "Item 1",
+        "quantity": 1,
+        "unit_price": 50,
+        "subtotal": 50,
+        "item_type": "food"
+      }
+    ],
+    "total_amount": 50,
+    "printed": false,
+    "status": "pending",
+    "created_at": "2026-05-29T14:24:53.120Z",
+    "updated_at": "2026-05-29T14:24:54.266Z",
+    "inventory_consumed": true,
+    "inventory_consumed_at": "2026-05-29T14:24:54.256Z",
+    "payment_status": "paid",
+    "paid_at": "2026-05-29T14:24:54.266Z",
+    "print_claimed": true,
+    "print_claimed_at": 1780080117125
+  },
+  {
+    "id": 681,
+    "type": "cafe",
+    "table_number": 13,
+    "employee_id": 12,
+    "waiter_name": "test",
+    "employee_name": "test",
+    "items": [
+      {
+        "menu_item_id": 110,
+        "menu_item_name": "beer1",
+        "quantity": 1,
+        "unit_price": 90,
+        "subtotal": 90,
+        "item_type": "food"
+      }
+    ],
+    "total_amount": 90,
+    "printed": false,
+    "status": "pending",
+    "created_at": "2026-05-29T18:40:21.834Z",
+    "updated_at": "2026-05-29T18:40:21.834Z",
+    "print_claimed": true,
+    "print_claimed_at": 1780080117125
+  },
+  {
+    "id": 682,
+    "type": "cafe",
+    "table_number": 15,
+    "employee_id": 12,
+    "waiter_name": "test",
+    "employee_name": "test",
+    "items": [
+      {
+        "menu_item_id": 110,
+        "menu_item_name": "beer1",
+        "quantity": 1,
+        "unit_price": 90,
+        "subtotal": 90,
+        "item_type": "food"
+      }
+    ],
+    "total_amount": 90,
+    "printed": false,
+    "status": "pending",
+    "created_at": "2026-05-29T18:40:59.345Z",
+    "updated_at": "2026-05-29T18:42:03.714Z",
+    "print_claimed": true,
+    "print_claimed_at": 1780080117125,
+    "inventory_consumed": true,
+    "inventory_consumed_at": "2026-05-29T18:42:03.704Z",
+    "payment_status": "paid",
+    "paid_at": "2026-05-29T18:42:03.714Z"
   }
 ]

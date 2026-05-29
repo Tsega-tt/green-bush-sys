@@ -105,13 +105,15 @@ class UserController {
         });
       }
 
-      // Check if email already exists
-      const existingEmail = await User.findByEmail(email);
-      if (existingEmail) {
-        return res.status(409).json({
-          status: 'error',
-          message: 'Email already exists'
-        });
+      // Check if email already exists (only when an email was provided)
+      if (email) {
+        const existingEmail = await User.findByEmail(email);
+        if (existingEmail) {
+          return res.status(409).json({
+            status: 'error',
+            message: 'Email already exists'
+          });
+        }
       }
 
       const newUser = await User.create(req.body);

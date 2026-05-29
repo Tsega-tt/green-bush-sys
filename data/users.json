@@ -6,8 +6,8 @@
     "last_name": "User",
     "email": "admin@cafe.com",
     "role": "admin",
-    "pin_hash": "$2a$10$uvg6WG.TwXmZRc5q66Qw7OZ9weQpjG9hYe33tDSLMDEBCCfo4IChq",
-    "password_hash": "$2a$10$jyk5gnl2j8u4d2Buf0t1wu.LzXglQZGqg2QjUiH49fWpf/asZl/m.",
+    "pin_hash": "$2a$10$oVDXwZwVGaZw8DcBahYbIeC6FdELR8hrF479WnRU0xNnFkVf1ObTi",
+    "password_hash": "$2a$10$onHOj2xa.6XqN8EBHIcIz..tnze1bSto4P1/aAARR/8odwrVcg7hG",
     "is_active": true
   },
   {
@@ -30,8 +30,8 @@
     "last_name": "Baker",
     "email": "sarah@cafe.com",
     "role": "bakery_employee",
-    "pin_hash": "$2a$10$g9udLkYPejTBVJwnMf5EfOI.obvIOIGBOx9A6tH8w1guCVWLxT5/y",
-    "password_hash": "$2a$10$Krf7AcC7K5/ifXkiXvD6Vuo86kAC2Du9tsZdImIOJYT4BWHCJujZi"
+    "pin_hash": "$2a$10$lT.CAPutUS/A8THtvcssleG4J8r.F2v96MJRFs3bvIOCNkhYevTNi",
+    "password_hash": "$2a$10$BOt.UDXzWqLFQGccoBRaQe4zDxPFS64KiFDBFWe/6qntQg/EHDCRq"
   },
   {
     "id": 5,
@@ -40,8 +40,8 @@
     "last_name": "Kitchen",
     "email": "tom@cafe.com",
     "role": "kitchen_staff",
-    "pin_hash": "$2a$10$gBR/Yq.STwMNJs1/o0yS2utC1YDD1wMMS6DTxq0uXxgAjsXt1Duyq",
-    "password_hash": "$2a$10$N0lQ9ot5jme52sEXSxBoiexp/t94Zc4koF.LbxXQm8/cgrhfnnM6S"
+    "pin_hash": "$2a$10$F/2v886ftLEe.Whe.BDs.OjyVCe7qkEdT59AoSLaREDjzTJ9lCD5C",
+    "password_hash": "$2a$10$PYVng8PltIt0o88wbMEdruRY9XMBe77gWCXi..2YD6xNrAbU1TJCW"
   },
   {
     "id": 6,
@@ -187,7 +187,7 @@
     "pin_hash": "$2a$10$NvoBBgnBnaBLXgwtJhSgpOcPjF0z7cAAqpGSFQy0vt0VhSRCKc00W"
   },
   {
-    "id": 17,
+    "id": 38,
     "username": "admin23",
     "first_name": "leul2",
     "last_name": "",
@@ -237,5 +237,31 @@
     "created_at": "2026-05-29T02:08:08.217Z",
     "updated_at": "2026-05-29T02:08:08.217Z",
     "pin_hash": "$2a$10$lYY64E9EzqnrCqZczki21OHezp2KL5TFgdgvtHR9BefutbRilie5m"
+  },
+  {
+    "id": 39,
+    "username": "natisha",
+    "first_name": "natisha",
+    "last_name": "",
+    "full_name": "natisha",
+    "email": "abdissanatiaga726@gmail.com",
+    "role": "store_admin",
+    "is_active": true,
+    "created_at": "2026-05-29T17:50:24.519Z",
+    "updated_at": "2026-05-29T17:50:24.519Z",
+    "pin_hash": "$2a$10$WcRugC3.10u6ScHaarS//Oq1cboRbz.J0pukq5TutZD3.GkSqZpiK"
+  },
+  {
+    "id": 40,
+    "username": "tsegish",
+    "first_name": "tsegisha",
+    "last_name": "",
+    "full_name": "tsegisha",
+    "email": "abda726@gmail.com",
+    "role": "store_admin",
+    "is_active": true,
+    "created_at": "2026-05-29T17:57:40.704Z",
+    "updated_at": "2026-05-29T17:57:40.704Z",
+    "pin_hash": "$2a$10$t8V7qTRr6FoBqVJM.k4TM.1n1Hk0yPhhXUN5SDD67Wk1WBcAaQhC2"
   }
 ]

@@ -3,31 +3,44 @@ const bcrypt = require('bcryptjs');
 
 class User {
   static async create(userData) {
-    const { username, email, password, role, first_name, last_name, phone } = userData;
-    
-    const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_SALT_ROUNDS || 10));
-    
+    const { username, email, password, pin, role, phone, store_id } = userData;
+
+    // Accept either first/last name or a single full_name (the UI sends full_name).
+    let { first_name, last_name } = userData;
+    if ((!first_name && !last_name) && userData.full_name) {
+      const parts = String(userData.full_name).trim().split(/\s+/);
+      first_name = parts[0] || '';
+      last_name = parts.slice(1).join(' ') || '';
+    }
+
+    const rounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || 10);
+    // Support PIN login (pin_hash) and/or password login (password_hash).
+    const passwordHash = password ? await bcrypt.hash(String(password), rounds) : null;
+    const pinHash = pin ? await bcrypt.hash(String(pin), rounds) : null;
+
     const query = `
-      INSERT INTO users (username, email, password_hash, role, first_name, last_name, phone, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING id, username, email, role, first_name, last_name, phone, created_at, is_active
+      INSERT INTO users (username, email, password_hash, pin_hash, role, first_name, last_name, phone, store_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+      RETURNING id, username, email, role, first_name, last_name, phone, store_id, created_at, is_active
     `;
-    
+
     const result = await db.query(query, [
-      username, 
-      email, 
-      hashedPassword, 
-      role, 
-      first_name, 
-      last_name, 
-      phone
+      username,
+      email || null,
+      passwordHash,
+      pinHash,
+      role,
+      first_name || null,
+      last_name || null,
+      phone || null,
+      store_id != null && store_id !== '' ? store_id : null,
     ]);
-    
+
     const user = result.rows[0];
     if (user) {
       user.full_name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
     }
-    
+
     return user;
   }
 

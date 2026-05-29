@@ -5,6 +5,7 @@ const repos = require('../repositories');
 const { getPool } = require('../db/pool');
 const ledger = require('../services/ledgerService');
 const masterData = require('../services/masterDataService');
+const capabilityService = require('../services/capabilityService');
 const snapshotService = require('../services/snapshotService');
 const businessDate = require('../services/businessDate');
 const sse = require('../realtime/sse');
@@ -46,8 +47,35 @@ router.get('/health/db', requireRoles('ops'), asyncHandler(async (req, res) => {
 }));
 
 // ---------------- stores & capabilities ----------------
+// Catalog of every capability the engine understands (for admin toggles).
+router.get('/capabilities-catalog', requireRoles('readInventory'), asyncHandler(async (req, res) => {
+  ok(res, { capabilities: capabilityService.CAPABILITY_CATALOG });
+}));
+
+// Candidate store managers for assignment dropdowns.
+router.get('/store-managers', requireRoles('manageStores'), asyncHandler(async (req, res) => {
+  ok(res, { managers: await masterData.reads.listManagers() });
+}));
+
 router.get('/stores', requireRoles('readInventory'), asyncHandler(async (req, res) => {
   ok(res, { stores: await masterData.reads.listStores() });
+}));
+
+router.get('/stores/:id', requireRoles('readInventory'), asyncHandler(async (req, res) => {
+  const store = await masterData.reads.getStore(V.toInt(req.params.id, 'id'));
+  if (!store) throw Errors.notFound('Store');
+  ok(res, { store });
+}));
+
+router.get('/stores/:id/summary', requireRoles('readInventory'), asyncHandler(async (req, res) => {
+  ok(res, { summary: await masterData.reads.storeSummary(V.toInt(req.params.id, 'id')) });
+}));
+
+router.patch('/stores/:id/manager', requireRoles('manageStores'), asyncHandler(async (req, res) => {
+  const managerId = req.body.manager_id != null && req.body.manager_id !== ''
+    ? V.toInt(req.body.manager_id, 'manager_id') : null;
+  const store = await masterData.assignManager(V.toInt(req.params.id, 'id'), managerId, ctx(req));
+  ok(res, { store });
 }));
 
 router.post('/stores', requireRoles('manageStores'), asyncHandler(async (req, res) => {
@@ -82,6 +110,29 @@ router.put('/stores/:storeId/capabilities', requireRoles('manageStores'), asyncH
     ctx(req)
   );
   ok(res, { capabilities: out });
+}));
+
+// ---------------- draft serving sizes (configurable) ----------------
+router.get('/draft-serving-sizes', requireRoles('readInventory'), asyncHandler(async (req, res) => {
+  ok(res, { serving_sizes: await masterData.reads.listServingSizes({ activeOnly: req.query.active === 'true' }) });
+}));
+router.post('/draft-serving-sizes', requireRoles('manageStores'), asyncHandler(async (req, res) => {
+  V.requireFields(req.body, ['name', 'liter_quantity']);
+  const size = await masterData.createServingSize({
+    name: req.body.name, code: req.body.code,
+    literQuantity: V.positiveNum(req.body.liter_quantity, 'liter_quantity'),
+    isActive: req.body.is_active,
+  }, ctx(req));
+  ok(res, { serving_size: size }, 201);
+}));
+router.put('/draft-serving-sizes/:id', requireRoles('manageStores'), asyncHandler(async (req, res) => {
+  const size = await masterData.updateServingSize(V.toInt(req.params.id, 'id'), {
+    name: req.body.name,
+    literQuantity: req.body.liter_quantity != null ? V.positiveNum(req.body.liter_quantity, 'liter_quantity') : null,
+    isActive: req.body.is_active,
+  }, ctx(req));
+  if (!size) throw Errors.notFound('Serving size');
+  ok(res, { serving_size: size });
 }));
 
 // ---------------- items ----------------
@@ -313,6 +364,7 @@ router.get('/audit-logs', requireRoles('viewAudit'), asyncHandler(async (req, re
     entityId: req.query.entity_id ? V.toInt(req.query.entity_id, 'entity_id') : null,
     actorId: req.query.actor_id ? V.toInt(req.query.actor_id, 'actor_id') : null,
     action: req.query.action || null,
+    storeId: req.query.store_id ? V.toInt(req.query.store_id, 'store_id') : null,
     limit: req.query.limit ? V.toInt(req.query.limit, 'limit') : 100,
     offset: req.query.offset ? V.toInt(req.query.offset, 'offset') : 0,
   }) });

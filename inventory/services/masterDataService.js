@@ -33,6 +33,41 @@ async function updateStore(id, patch, ctx) {
   });
 }
 
+/**
+ * Assign (or clear, with managerId=null) a store's manager. Enforces the
+ * one-manager-per-store / one-store-per-manager rule and keeps users.store_id
+ * in sync so store-scoping (enforceStoreScope) works automatically.
+ */
+async function assignManager(storeId, managerId, ctx) {
+  return withTransaction(async (client) => {
+    const store = await repos.stores.getById(client, storeId);
+    if (!store) throw Errors.notFound('Store');
+
+    // Detach the store's previous manager (if any and different).
+    if (store.manager_id && Number(store.manager_id) !== Number(managerId)) {
+      await repos.usersRepo.setStoreId(client, store.manager_id, null);
+    }
+
+    if (managerId) {
+      const user = await repos.usersRepo.getById(client, managerId);
+      if (!user) throw Errors.validation('Manager user not found');
+      if (!['store_manager', 'store_admin'].includes(user.role)) {
+        throw Errors.businessRule('Assigned user must have the store_manager role');
+      }
+      // A manager runs at most one store: detach them elsewhere first.
+      await repos.stores.clearManagerForUser(client, managerId);
+      await repos.stores.setManager(client, storeId, managerId);
+      await repos.usersRepo.setStoreId(client, managerId, storeId);
+    } else {
+      await repos.stores.setManager(client, storeId, null);
+    }
+
+    await repos.audit.insert(client, { ...actor(ctx), action: 'assign_manager',
+      entityType: 'store', entityId: storeId, oldValue: { manager_id: store.manager_id }, newValue: { manager_id: managerId || null } });
+    return repos.stores.getById(client, storeId);
+  });
+}
+
 async function setCapabilities(storeId, caps, ctx) {
   const result = await withTransaction(async (client) => {
     const store = await repos.stores.getById(client, storeId);
@@ -113,6 +148,36 @@ async function updateSupplier(id, patch, ctx) {
   });
 }
 
+// ---------------- draft serving sizes ----------------
+function slugifyCode(name) {
+  return String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+async function createServingSize(data, ctx) {
+  if (!data.name) throw Errors.validation('name is required');
+  if (!(Number(data.literQuantity) > 0)) throw Errors.validation('liter_quantity must be > 0');
+  return withTransaction(async (client) => {
+    const code = (data.code && slugifyCode(data.code)) || slugifyCode(data.name);
+    if (await repos.servingSizes.getByCode(client, code)) throw Errors.conflict('Serving size code already exists');
+    const size = await repos.servingSizes.insert(client, { ...data, code });
+    await repos.audit.insert(client, { ...actor(ctx), action: 'create',
+      entityType: 'draft_serving_size', entityId: size.id, newValue: size });
+    return size;
+  });
+}
+
+async function updateServingSize(id, patch, ctx) {
+  return withTransaction(async (client) => {
+    const before = await repos.servingSizes.getById(client, id);
+    if (!before) throw Errors.notFound('Serving size');
+    if (patch.literQuantity != null && !(Number(patch.literQuantity) > 0)) throw Errors.validation('liter_quantity must be > 0');
+    const size = await repos.servingSizes.update(client, id, patch);
+    await repos.audit.insert(client, { ...actor(ctx), action: 'update',
+      entityType: 'draft_serving_size', entityId: id, oldValue: before, newValue: size });
+    return size;
+  });
+}
+
 // ---------------- thresholds ----------------
 async function replaceThresholds(bands, ctx) {
   return withTransaction(async (client) => {
@@ -126,6 +191,10 @@ async function replaceThresholds(bands, ctx) {
 // ---------------- reads (pool) ----------------
 const reads = {
   listStores: () => repos.stores.list(getPool()),
+  getStore: (id) => repos.stores.getById(getPool(), id),
+  storeSummary: (id) => repos.stores.summary(getPool(), id),
+  listManagers: () => repos.usersRepo.listManagers(getPool()),
+  listServingSizes: (opts) => repos.servingSizes.list(getPool(), opts),
   listCapabilities: (storeId) => repos.capabilities.listByStore(getPool(), storeId),
   listItems: (q) => repos.items.list(getPool(), q),
   listSuppliers: (q) => repos.suppliers.list(getPool(), q),
@@ -133,7 +202,8 @@ const reads = {
 };
 
 module.exports = {
-  createStore, updateStore, setCapabilities,
+  createStore, updateStore, assignManager, setCapabilities,
+  createServingSize, updateServingSize,
   createItem, updateItem, deleteItem,
   createSupplier, updateSupplier,
   replaceThresholds, reads,

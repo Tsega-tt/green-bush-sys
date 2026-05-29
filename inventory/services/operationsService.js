@@ -122,6 +122,7 @@ async function finalizeCount(p) {
 // ----------------------------- DAILY CLOSING -----------------------------
 async function generateClosing(p) {
   const date = p.businessDate || businessDate.currentBusinessDate();
+  await require('./capabilityService').requireCapability(p.storeId, 'participates_in_daily_closing');
   return withTransaction(async (client) => {
     // movement values by type for the local business date
     const { rows } = await client.query(
@@ -165,6 +166,7 @@ async function generateClosing(p) {
 
 async function confirmClosing(p) {
   const date = p.businessDate || businessDate.currentBusinessDate();
+  await require('./capabilityService').requireCapability(p.storeId, 'participates_in_daily_closing');
   return withTransaction(async (client) => {
     const row = await closingRepo.lockByStoreDate(client, p.storeId, date);
     if (!row) throw Errors.notFound('Daily closing (generate it first)');
@@ -197,6 +199,16 @@ async function receiveKeg(p) {
     });
     await kegRepo.addEvent(client, { kegId: keg.id, eventType: 'received', liters: qty(p.sizeLiters),
       litersRemainingAfter: qty(p.sizeLiters), createdBy: p.userId });
+    // Mirror the keg's liters into the unified inventory ledger so draft stock
+    // shows up in balances/valuation/reporting (and draft sales can post 'sale').
+    if (p.itemId) {
+      await applyMovement(client, {
+        storeId: p.storeId, itemId: p.itemId, direction: 'in', type: 'purchase_receipt',
+        quantity: qty(p.sizeLiters), unitCost: p.unitCost || 0,
+        referenceType: 'keg', referenceId: keg.id, idempotencyKey: `keg_recv:${keg.id}`,
+        userId: p.userId, userRole: p.userRole, note: `Keg ${keg.keg_code} received`,
+      });
+    }
     await repos.audit.insert(client, { actorId: p.userId, actorRole: p.userRole, action: 'keg_receive',
       entityType: 'keg', entityId: keg.id, storeId: p.storeId });
     return keg;

@@ -29,7 +29,10 @@ function bcast(type, data) { sse.broadcast(type, data); }
 // --------------------------- Purchase Requisition ---------------------------
 async function createPR(p) {
   if (!Array.isArray(p.lines) || !p.lines.length) throw Errors.validation('At least one line required');
-  await capabilityService.requireCapability(p.storeId, 'can_purchase_directly');
+  // A requisition is a REQUEST (needs can_request_items); direct purchasing
+  // (can_purchase_directly) is enforced separately at PO creation. This lets
+  // stores like Pizza/Kitfo raise requests without being direct buyers.
+  await capabilityService.requireCapability(p.storeId, 'can_request_items');
   const estimatedTotal = money(p.lines.reduce((s, l) => s + num(l.quantityRequested) * num(l.estUnitCost), 0));
   const band = await resolveBand(estimatedTotal);
 

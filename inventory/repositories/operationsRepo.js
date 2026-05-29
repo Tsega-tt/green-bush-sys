@@ -136,6 +136,20 @@ const kegs = {
     const { rows } = await client.query(`SELECT * FROM kegs WHERE id=$1 FOR UPDATE`, [id]);
     return rows[0] || null;
   },
+  /**
+   * Active keg to pour from for (store, beverage item): prefer a tapped keg,
+   * then the oldest still-full one (FEFO). Locked for the sale transaction.
+   */
+  async lockActiveForItem(client, storeId, itemId) {
+    const { rows } = await client.query(
+      `SELECT * FROM kegs
+        WHERE store_id=$1 AND item_id=$2 AND status IN ('tapped','received') AND liters_remaining > 0
+        ORDER BY (status='tapped') DESC, received_at ASC
+        LIMIT 1 FOR UPDATE`,
+      [storeId, itemId]
+    );
+    return rows[0] || null;
+  },
   async getById(db, id) {
     const { rows } = await db.query(`SELECT * FROM kegs WHERE id=$1`, [id]);
     if (!rows[0]) return null;

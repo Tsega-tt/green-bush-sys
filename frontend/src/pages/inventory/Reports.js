@@ -17,6 +17,7 @@ const TABS = [
   { key: 'transfers', label: 'Transfers', fn: (p) => inventoryApi.reports.transfers(p), needs: ['store', 'dates'] },
   { key: 'purchases', label: 'Purchases', fn: (p) => inventoryApi.reports.purchases(p), needs: ['store', 'dates'] },
   { key: 'supplier-performance', label: 'Supplier performance', fn: () => inventoryApi.reports.supplierPerformance(), needs: [] },
+  { key: 'menu-profitability', label: 'Menu profitability', fn: () => inventoryApi.recipes.profitability(), needs: [] },
   { key: 'variance', label: 'Variance', fn: (p) => inventoryApi.reports.variance(p), needs: ['store', 'dates'] },
   { key: 'expiry', label: 'Expiry', fn: (p) => inventoryApi.reports.expiry(p), needs: ['store', 'withinDays'] },
   { key: 'kegs', label: 'Kegs', fn: (p) => inventoryApi.reports.kegs(p), needs: ['store'] },

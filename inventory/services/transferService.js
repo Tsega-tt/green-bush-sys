@@ -32,7 +32,7 @@ async function createTransfer(p) {
   if (Number(p.sourceStoreId) === Number(p.destStoreId)) throw Errors.validation('source and destination must differ');
   if (!Array.isArray(p.lines) || !p.lines.length) throw Errors.validation('at least one line required');
   await capabilityService.requireCapability(p.sourceStoreId, 'can_transfer');
-  await capabilityService.requireCapability(p.destStoreId, 'can_transfer');
+  await capabilityService.requireCapability(p.destStoreId, 'can_receive_transfers');
 
   return withTransaction(async (client) => {
     const header = await tRepo.create(client, {

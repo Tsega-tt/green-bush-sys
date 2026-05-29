@@ -14,6 +14,7 @@ const userValidation = [
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username can only contain letters, numbers, and underscores'),
   body('email')
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail(),
@@ -41,7 +42,7 @@ const userValidation = [
       return true;
     }),
   body('role')
-    .isIn(['admin', 'bakery_employee', 'cafe_waiter', 'cashier', 'kitchen_staff'])
+    .isIn(['admin', 'owner', 'hr_admin', 'store_admin', 'store_manager', 'fnb_manager', 'purchaser', 'bakery_employee', 'cafe_waiter', 'cashier', 'kitchen_staff', 'item_request'])
     .withMessage('Invalid role specified'),
   body('full_name')
     .notEmpty()
@@ -64,7 +65,7 @@ const updateUserValidation = [
     .normalizeEmail(),
   body('role')
     .optional()
-    .isIn(['admin', 'bakery_employee', 'cafe_waiter', 'cashier', 'kitchen_staff'])
+    .isIn(['admin', 'owner', 'hr_admin', 'store_admin', 'store_manager', 'fnb_manager', 'purchaser', 'bakery_employee', 'cafe_waiter', 'cashier', 'kitchen_staff', 'item_request'])
     .withMessage('Invalid role specified'),
   body('full_name')
     .optional()

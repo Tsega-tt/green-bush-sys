@@ -60,7 +60,11 @@ import PurchaseRequests from './pages/inventory/PurchaseRequests';
 import PurchaseOrders from './pages/inventory/PurchaseOrders';
 import GoodsReceipts from './pages/inventory/GoodsReceipts';
 import Suppliers from './pages/inventory/Suppliers';
+import Stores from './pages/inventory/Stores';
 import ItemsMaster from './pages/inventory/ItemsMaster';
+import RecipeBuilder from './pages/inventory/RecipeBuilder';
+import ServingSizes from './pages/inventory/ServingSizes';
+import CafeMenuManagement from './pages/cafe/MenuManagement';
 import Waste from './pages/inventory/Waste';
 import StockCounts from './pages/inventory/StockCounts';
 import DailyClosing from './pages/inventory/DailyClosing';
@@ -337,10 +341,42 @@ const DashboardRouter = () => {
           }
         />
         <Route
+          path="inventory-pg/stores"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Stores />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="inventory-pg/items"
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
               <ItemsMaster />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/recipes"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
+              <RecipeBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/serving-sizes"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ServingSizes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="cafe/menu"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner']}>
+              <CafeMenuManagement />
             </ProtectedRoute>
           }
         />

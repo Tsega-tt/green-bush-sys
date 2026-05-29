@@ -19,16 +19,17 @@ const audit = {
     );
     return rows[0].id;
   },
-  async list(db, { entityType, entityId, actorId, action, limit = 100, offset = 0 } = {}) {
+  async list(db, { entityType, entityId, actorId, action, storeId, limit = 100, offset = 0 } = {}) {
     const { rows } = await db.query(
       `SELECT * FROM audit_logs
         WHERE ($1::text   IS NULL OR entity_type = $1)
           AND ($2::bigint IS NULL OR entity_id  = $2)
           AND ($3::int    IS NULL OR actor_id   = $3)
           AND ($4::text   IS NULL OR action     = $4)
+          AND ($5::bigint IS NULL OR store_id   = $5)
         ORDER BY created_at DESC, id DESC
-        LIMIT $5 OFFSET $6`,
-      [entityType || null, entityId || null, actorId || null, action || null, limit, offset]
+        LIMIT $6 OFFSET $7`,
+      [entityType || null, entityId || null, actorId || null, action || null, storeId || null, limit, offset]
     );
     return rows;
   },

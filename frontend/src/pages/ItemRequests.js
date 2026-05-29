@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
+import inventoryApi from '../services/inventoryApi';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -7,13 +8,6 @@ import {
   FiXCircle, FiClock, FiChevronDown, FiChevronUp, FiTrash2, FiEye
 } from 'react-icons/fi';
 
-const STORES = [
-  { id: 'dry_goods', name: 'Dry/Goods Store',  icon: '📦' },
-  { id: 'bar',       name: 'Bar Store',         icon: '🍷' },
-  { id: 'pastry',    name: 'Pastry/Cake Store', icon: '🎂' },
-  { id: 'kitchen',   name: 'Kitchen Store',      icon: '🍳' },
-  { id: 'barman',    name: 'Barman Store',        icon: '🍸' },
-];
 const UOM_OPTIONS = ['pcs', 'kg', 'g', 'liters', 'ml', 'boxes', 'bottles', 'bags', 'cans', 'packs', 'rolls', 'sheets'];
 const EMPTY_LINE  = { item_number: '', description: '', uom: 'pcs', quantity_requested: '', quantity_approved: '' };
 
@@ -325,6 +319,7 @@ function RequestCard({ req, expanded, onToggle, isStoreAdmin, isFnbManager, curr
 }
 
 function NewRequestModal({ user, onClose, onCreated }) {
+  const [stores, setStores]             = useState([]);
   const [storeId, setStoreId]           = useState('');
   const [storeItems, setStoreItems]     = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -332,12 +327,22 @@ function NewRequestModal({ user, onClose, onCreated }) {
   const [lines, setLines]               = useState([{ ...EMPTY_LINE, _itemId: '' }]);
   const [saving, setSaving]             = useState(false);
 
+  // Real PostgreSQL stores (same source as the inventory module).
+  useEffect(() => {
+    inventoryApi.stores.list()
+      .then((r) => setStores((r.data.data.stores || []).filter((s) => s.is_active !== false)))
+      .catch(() => setStores([]));
+  }, []);
+
   useEffect(() => {
     if (!storeId) { setStoreItems([]); setLines([{ ...EMPTY_LINE, _itemId: '' }]); return; }
     setLoadingItems(true);
-    api.stores.getItems(storeId)
-      .then(res => {
-        const data = res?.data?.data?.items ?? res?.data?.items ?? [];
+    // Load this store's real stock so requesters can pick existing items.
+    inventoryApi.balances({ store_id: storeId })
+      .then((res) => {
+        const data = (res?.data?.data?.balances ?? []).map((b) => ({
+          id: b.item_id, item_number: b.item_code, description: b.description, uom: b.uom,
+        }));
         setStoreItems(Array.isArray(data) ? data : []);
       })
       .catch(() => setStoreItems([]))
@@ -367,8 +372,10 @@ function NewRequestModal({ user, onClose, onCreated }) {
     if (validLines.length === 0) { toast.error('Add at least one item with description and quantity'); return; }
     setSaving(true);
     try {
+      const selectedStore = stores.find((s) => String(s.id) === String(storeId));
       await api.itemRequests.create({
         store_id:       storeId,
+        store_name:     selectedStore ? selectedStore.name : undefined,
         requester_id:   user.id,
         requester_name: user.full_name || user.name || user.username,
         notes,
@@ -406,7 +413,7 @@ function NewRequestModal({ user, onClose, onCreated }) {
                 <select required value={storeId} onChange={e => setStoreId(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
                   <option value="">Select store…</option>
-                  {STORES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.icon ? `${s.icon} ` : ''}{s.name}</option>)}
                 </select>
               </div>
             </div>

@@ -267,10 +267,41 @@ if (performanceRoutes) {
 
 // Inventory domain (Phase 0/1). No-op unless INVENTORY_BACKEND=pg and DB is
 // configured, so the legacy JSON inventory paths below remain the default.
+let invDomain = null;
 try {
-  require('./inventory').mountInventory(app);
+  invDomain = require('./inventory');
+  invDomain.mountInventory(app);
 } catch (e) {
   console.warn('⚠️  Inventory module not mounted:', e.message);
+}
+
+/**
+ * Move PG inventory when an order is finalized (paid). Idempotent per order:
+ * the order carries an `inventory_consumed` flag AND the PG ledger rejects a
+ * second consumption for the same order id — so retries/refresh never deduct
+ * twice. The PG consumption is one atomic transaction (no partial deductions;
+ * a shortage rolls the whole thing back). Returns { ok, result?, error? }.
+ *
+ * Non-blocking by default: on a real shortage the sale still completes and an
+ * alert is raised. Set INVENTORY_ENFORCE_ON_SALE=true to instead block the sale.
+ */
+async function consumeSaleForOrder(order, userId) {
+  if (!invDomain || !order) return { ok: true, result: { skipped: 'disabled' } };
+  if (order.inventory_consumed) return { ok: true, result: { skipped: 'already_flagged' } };
+  try {
+    const result = await invDomain.consumeOrderSale(order, { userId });
+    if (result && !result.skipped) {
+      order.inventory_consumed = true;
+      order.inventory_consumed_at = new Date().toISOString();
+      try { saveOrdersToDisk(); } catch (_) { /* best effort */ }
+    }
+    return { ok: true, result };
+  } catch (error) {
+    console.error('[sale-consume] order', order.id, error.code || '', error.message);
+    order.inventory_consumption_error = error.message;
+    try { saveOrdersToDisk(); } catch (_) { /* best effort */ }
+    return { ok: false, error };
+  }
 }
 
 const DATA_DIR = path.join(__dirname, 'data');
@@ -2472,26 +2503,76 @@ app.patch('/api/users/:id/toggle-status', (req, res) => {
 });
 
 // Users - create
+/**
+ * Bridge the legacy (JSON/MOCK_USERS) user store to the PostgreSQL `users`
+ * table that the inventory module reads. Without this, a user created here is
+ * invisible to inventory (e.g. the Store-Manager dropdown) and inventory auth
+ * (x-user-id) can't resolve them. Upserts by username and returns the PG id so
+ * the legacy record can reuse it — keeping a single id across both systems.
+ * No-op (returns null) if PG isn't configured, so legacy keeps working.
+ */
+async function upsertPgUser(u, { password, pin } = {}) {
+  try {
+    const db = require('./config/database');
+    if (!db.pool) return null;
+    const passwordHash = password && String(password).trim() ? await bcrypt.hash(String(password), 10) : null;
+    const pinHash = pin && String(pin).trim() ? await bcrypt.hash(String(pin), 10) : null;
+    // Drop the email if another username already owns it (login is by name/PIN).
+    let email = u.email && String(u.email).trim() ? String(u.email).trim() : null;
+    if (email) {
+      const taken = await db.query('SELECT 1 FROM users WHERE LOWER(email)=LOWER($1) AND LOWER(username)<>LOWER($2)', [email, u.username]);
+      if (taken.rows[0]) email = null;
+    }
+    if (!email) email = `${u.username}@local.kidist`; // email column is NOT NULL + unique
+    const ex = await db.query('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [u.username]);
+    if (ex.rows[0]) {
+      const id = ex.rows[0].id;
+      await db.query(
+        `UPDATE users SET email=$2, role=$3, first_name=$4, last_name=$5, is_active=$6,
+           pin_hash=COALESCE($7, pin_hash), password_hash=COALESCE($8, password_hash), updated_at=NOW()
+         WHERE id=$1`,
+        [id, email, u.role, u.first_name || null, u.last_name || null, u.is_active !== false, pinHash, passwordHash]
+      );
+      return id;
+    }
+    const ins = await db.query(
+      `INSERT INTO users (username, email, password_hash, pin_hash, role, first_name, last_name, is_active, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW()) RETURNING id`,
+      [u.username, email, passwordHash, pinHash, u.role, u.first_name || null, u.last_name || null, u.is_active !== false]
+    );
+    return ins.rows[0].id;
+  } catch (e) {
+    console.error('⚠️ PG user sync failed:', e.message);
+    return null;
+  }
+}
+
 app.post('/api/users', async (req, res) => {
   try {
     const { full_name, username, email, role, is_active = true, password, pin } = req.body || {};
-    
+
     // Validate required fields
     if (!username || !full_name) {
       return res.status(400).json({ status: 'error', message: 'Username and full name are required' });
     }
-    
+
     // Check if username already exists
     if (MOCK_USERS.some(u => u.username === username)) {
       return res.status(409).json({ status: 'error', message: 'Username already exists' });
     }
-    
+
     const nameParts = (full_name || '').trim().split(' ');
     const first_name = nameParts[0] || username;
     const last_name = nameParts.slice(1).join(' ') || '';
-    
-    const id = (MOCK_USERS.reduce((m, u) => Math.max(m, u.id), 0) || 0) + 1;
-    
+
+    // Sync to PostgreSQL first so the legacy id matches the PG id (one identity
+    // across both systems). Falls back to a local id if PG is unavailable.
+    const pgId = await upsertPgUser(
+      { username, email, role: role || 'cafe_waiter', first_name, last_name, is_active: !!is_active },
+      { password, pin }
+    );
+    const id = pgId || ((MOCK_USERS.reduce((m, u) => Math.max(m, u.id), 0) || 0) + 1);
+
     const newUser = {
       id,
       username,
@@ -2569,6 +2650,12 @@ app.put('/api/users/:id', async (req, res) => {
   
   user.updated_at = new Date().toISOString();
   saveUsersToDisk();
+  // Keep the PostgreSQL users table (used by the inventory module) in sync.
+  await upsertPgUser(
+    { username: user.username, email: user.email, role: user.role,
+      first_name: user.first_name, last_name: user.last_name, is_active: user.is_active },
+    { password, pin }
+  );
   return res.status(200).json({ status: 'success', data: { user }, user });
 });
 
@@ -5102,7 +5189,7 @@ app.get('/api/orders/payment/pending', (req, res) => {
   });
 });
 
-app.put('/api/orders/:id/status', (req, res) => {
+app.put('/api/orders/:id/status', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { status } = req.body || {};
   const order = (MOCK_ORDERS || []).find(o => o.id === id);
@@ -5135,6 +5222,16 @@ app.put('/api/orders/:id/status', (req, res) => {
     }
     order.inventory_reversed = true;
     order.inventory_reversed_at = new Date().toISOString();
+  }
+
+  // Reverse PG consumption for a voided sale that had already been consumed.
+  if (!wasVoided && willBeVoided && invDomain && order.inventory_consumed && !order.inventory_pg_reversed) {
+    try {
+      const r = await invDomain.reverseOrderSale(order, { userId: req.body.processed_by });
+      if (r && !r.skipped) { order.inventory_pg_reversed = true; order.inventory_pg_reversed_at = new Date().toISOString(); }
+    } catch (e) {
+      console.error('[sale-reverse] order', order.id, e.code || '', e.message);
+    }
   }
 
   order.updated_at = new Date().toISOString();
@@ -5873,7 +5970,7 @@ app.get('/api/payments/order/:orderId', (req, res) => {
 });
 
 // Payments - create
-app.post('/api/payments', (req, res) => {
+app.post('/api/payments', async (req, res) => {
   console.log('➕ CREATE PAYMENT');
   const { order_id, amount, payment_method = 'cash', status = 'pending', processed_by } = req.body || {};
   
@@ -5904,6 +6001,25 @@ app.post('/api/payments', (req, res) => {
   };
   MOCK_PAYMENTS.push(payment);
   savePaymentsToDisk();
+
+  // Direct paid sale (e.g. cash) -> finalize inventory consumption immediately.
+  if (String(status).toLowerCase() === 'paid' && order) {
+    const sale = await consumeSaleForOrder(order, processed_by);
+    if (!sale.ok && invDomain && invDomain.enforceOnSale()) {
+      // Roll the payment back so the sale isn't recorded as paid without stock.
+      MOCK_PAYMENTS.pop();
+      savePaymentsToDisk();
+      return res.status(409).json({
+        status: 'error', code: 'INVENTORY_SHORTAGE',
+        message: sale.error.message || 'Insufficient inventory for this sale',
+        data: sale.error.details || null,
+      });
+    }
+    order.payment_status = 'paid';
+    order.paid_at = new Date().toISOString();
+    order.updated_at = new Date().toISOString();
+    saveOrdersToDisk();
+  }
   return res.status(200).json({ status: 'success', data: { payment }, payment });
 });
 
@@ -5928,13 +6044,29 @@ app.post('/api/payments/with-qr', (req, res) => {
 });
 
 // Payments - update status
-app.put('/api/payments/:id/status', (req, res) => {
+app.put('/api/payments/:id/status', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { status } = req.body || {};
   const payment = (MOCK_PAYMENTS || []).find(p => p.id === id);
   if (!payment) return res.status(200).json({ status: 'success', data: { payment: null } });
+  const becamePaid = status && String(status).toLowerCase() === 'paid' && payment.status !== 'paid';
   if (status) payment.status = status;
   payment.updated_at = new Date().toISOString();
+
+  if (becamePaid) {
+    const order = (MOCK_ORDERS || []).find(o => o.id === payment.order_id);
+    const sale = await consumeSaleForOrder(order, payment.processed_by);
+    if (!sale.ok && invDomain && invDomain.enforceOnSale()) {
+      payment.status = 'pending';
+      savePaymentsToDisk();
+      return res.status(409).json({
+        status: 'error', code: 'INVENTORY_SHORTAGE',
+        message: sale.error.message || 'Insufficient inventory for this sale',
+        data: sale.error.details || null,
+      });
+    }
+    if (order) { order.payment_status = 'paid'; order.paid_at = new Date().toISOString(); saveOrdersToDisk(); }
+  }
   savePaymentsToDisk();
   return res.status(200).json({ status: 'success', data: { payment }, payment });
 });
@@ -5951,20 +6083,33 @@ app.post('/api/payments/:id/generate-qr', (req, res) => {
 });
 
 // Payments - confirm
-app.post('/api/payments/:id/confirm', (req, res) => {
+app.post('/api/payments/:id/confirm', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const payment = (MOCK_PAYMENTS || []).find(p => p.id === id);
   if (!payment) return res.status(404).json({ status: 'error', message: 'Payment not found' });
-  
+
   // Prevent confirming already-paid payments
   if (payment.status === 'paid') {
-    return res.status(400).json({ 
-      status: 'error', 
+    return res.status(400).json({
+      status: 'error',
       message: 'Payment already confirmed',
       data: { payment }
     });
   }
-  
+
+  // Finalized sale -> move PG inventory (idempotent, atomic). Done before we
+  // mark the payment paid so that, when enforcement is on, a stock shortage
+  // blocks confirmation cleanly with nothing half-committed.
+  const saleOrder = (MOCK_ORDERS || []).find(o => o.id === payment.order_id);
+  const sale = await consumeSaleForOrder(saleOrder, req.body.processed_by || payment.processed_by);
+  if (!sale.ok && invDomain && invDomain.enforceOnSale()) {
+    return res.status(409).json({
+      status: 'error', code: 'INVENTORY_SHORTAGE',
+      message: sale.error.message || 'Insufficient inventory for this sale',
+      data: sale.error.details || null,
+    });
+  }
+
   payment.status = 'paid';
   payment.updated_at = new Date().toISOString();
   if (req.body.processed_by) {
@@ -6755,13 +6900,15 @@ app.post('/api/item-requests', (req, res) => {
   if (!Array.isArray(lines) || lines.length === 0) {
     return res.status(400).json({ status: 'error', message: 'At least one item line is required' });
   }
-  const store = STORES.find(s => s.id === store_id);
-  if (!store) return res.status(400).json({ status: 'error', message: 'Invalid store' });
+  // Accept real PostgreSQL store ids (from the inventory module). Use the store
+  // name sent by the client, falling back to the legacy catalog if present.
+  const legacyStore = STORES.find(s => String(s.id) === String(store_id));
+  const storeName = req.body.store_name || (legacyStore && legacyStore.name) || `Store ${store_id}`;
   const id = (MOCK_ITEM_REQUESTS.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
   const reqNumber = `REQ-${new Date().getFullYear()}-${String(id).padStart(4, '0')}`;
   const request = {
     id, request_number: reqNumber,
-    store_id, store_name: store.name,
+    store_id, store_name: storeName,
     requester_id, requester_name: requester_name || 'Unknown',
     status: 'pending',
     notes: notes || '',

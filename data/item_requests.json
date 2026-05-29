@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "request_number": "REQ-2026-0001",
+    "store_id": "7",
+    "store_name": "Kitfo Store",
+    "requester_id": 1,
+    "requester_name": "Admin User",
+    "status": "pending",
+    "notes": "",
+    "lines": [
+      {
+        "line_number": 1,
+        "item_number": "",
+        "description": "Beef tenderloin",
+        "uom": "kg",
+        "quantity_requested": 10,
+        "quantity_approved": null
+      }
+    ],
+    "store_admin_id": null,
+    "store_admin_name": null,
+    "store_admin_approved_at": null,
+    "fnb_manager_id": null,
+    "fnb_manager_name": null,
+    "fnb_manager_approved_at": null,
+    "rejected_by": null,
+    "rejected_by_id": null,
+    "rejected_at": null,
+    "rejection_reason": null,
+    "created_at": "2026-05-29T19:03:29.096Z",
+    "updated_at": "2026-05-29T19:03:29.096Z"
+  }
+]

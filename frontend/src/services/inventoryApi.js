@@ -11,10 +11,22 @@ const inventoryApi = {
   // ---- master data ----
   stores: {
     list: () => api.get(`${P}/stores`),
+    get: (id) => api.get(`${P}/stores/${id}`),
     create: (data) => api.post(`${P}/stores`, data),
     update: (id, data) => api.put(`${P}/stores/${id}`, data),
     capabilities: (id) => api.get(`${P}/stores/${id}/capabilities`),
     setCapabilities: (id, capabilities) => api.put(`${P}/stores/${id}/capabilities`, { capabilities }),
+    capabilityCatalog: () => api.get(`${P}/capabilities-catalog`),
+    managers: () => api.get(`${P}/store-managers`),
+    assignManager: (id, managerId) => api.patch(`${P}/stores/${id}/manager`, { manager_id: managerId }),
+    summary: (id) => api.get(`${P}/stores/${id}/summary`),
+  },
+
+  // ---- draft serving sizes (configurable) ----
+  servingSizes: {
+    list: (params) => api.get(`${P}/draft-serving-sizes`, { params }),
+    create: (data) => api.post(`${P}/draft-serving-sizes`, data),
+    update: (id, data) => api.put(`${P}/draft-serving-sizes/${id}`, data),
   },
   items: {
     list: (params) => api.get(`${P}/items`, { params }),
@@ -99,7 +111,9 @@ const inventoryApi = {
     set: (menuItemId, data) => api.put(`${P}/recipes/${menuItemId}`, data),
     availability: (menuItemId) => api.get(`${P}/menu/${menuItemId}/availability`),
     availabilityMany: (ids) => api.post(`${P}/menu/availability`, { menu_item_ids: ids }),
+    validateOrder: (items) => api.post(`${P}/orders/validate`, { items }),
     consume: (orderId, items) => api.post(`${P}/orders/${orderId}/consume`, { items }),
+    profitability: () => api.get(`${P}/reports/menu-profitability`),
   },
 
   // ---- operations (Phase 5) ----

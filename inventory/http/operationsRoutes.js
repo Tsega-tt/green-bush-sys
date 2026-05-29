@@ -86,7 +86,8 @@ router.post('/kegs', requireRoles('kegs'), asyncHandler(async (req, res) => {
     storeId: V.toInt(req.body.store_id, 'store_id'), kegCode: req.body.keg_code,
     sizeLiters: V.positiveNum(req.body.size_liters, 'size_liters'),
     itemId: req.body.item_id ? V.toInt(req.body.item_id, 'item_id') : null,
-    supplierId: req.body.supplier_id ? V.toInt(req.body.supplier_id, 'supplier_id') : null, ...actor(req),
+    supplierId: req.body.supplier_id ? V.toInt(req.body.supplier_id, 'supplier_id') : null,
+    unitCost: req.body.unit_cost != null ? V.nonNegNum(req.body.unit_cost, 'unit_cost') : 0, ...actor(req),
   }) }, 201);
 }));
 router.patch('/kegs/:id/event', requireRoles('kegs'), asyncHandler(async (req, res) => {

@@ -6548,5 +6548,25 @@
     "processed_by": 6,
     "created_at": "2026-03-06T23:23:53.266Z",
     "updated_at": "2026-03-06T23:23:53.341Z"
+  },
+  {
+    "id": 656,
+    "order_id": 680,
+    "amount": 50,
+    "payment_method": "cash",
+    "status": "paid",
+    "processed_by": 1,
+    "created_at": "2026-05-29T14:24:54.058Z",
+    "updated_at": "2026-05-29T14:24:54.058Z"
+  },
+  {
+    "id": 657,
+    "order_id": 682,
+    "amount": 90,
+    "payment_method": "cash",
+    "status": "paid",
+    "processed_by": 6,
+    "created_at": "2026-05-29T18:42:03.027Z",
+    "updated_at": "2026-05-29T18:42:03.710Z"
   }
 ]
