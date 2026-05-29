@@ -1,4 +1,4 @@
-import api, { API_BASE_URL } from './api';
+import { api, API_BASE_URL } from './api';
 
 /**
  * Client for the PostgreSQL inventory module (/api/inv/*). Reuses the shared

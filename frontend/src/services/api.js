@@ -365,4 +365,8 @@ const apiService = {
   health: () => api.get('/health'),
 };
 
+// Raw axios instance (carries the x-user-id / user_id request interceptors).
+// The inventory module talks to /api/inv/* directly through this.
+export { api };
+
 export default apiService;

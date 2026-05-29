@@ -1,7 +1,8 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
@@ -130,6 +131,7 @@ const BakeryRouter = () => {
 // Dashboard Router Component for non-waiter, non-bakery roles
 const DashboardRouter = () => {
   const { user } = useAuth();
+  const location = useLocation();
 
   const getDashboardComponent = () => {
     switch (user?.role) {
@@ -160,6 +162,7 @@ const DashboardRouter = () => {
 
   return (
     <DashboardLayout>
+      <ErrorBoundary routeKey={location.pathname}>
       <Routes>
         {/* Dashboard Home */}
         <Route index element={getDashboardComponent()} />
@@ -478,6 +481,7 @@ const DashboardRouter = () => {
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </ErrorBoundary>
     </DashboardLayout>
   );
 };
