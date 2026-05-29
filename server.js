@@ -265,6 +265,14 @@ if (performanceRoutes) {
   app.use('/api/performance', performanceRoutes);
 }
 
+// Inventory domain (Phase 0/1). No-op unless INVENTORY_BACKEND=pg and DB is
+// configured, so the legacy JSON inventory paths below remain the default.
+try {
+  require('./inventory').mountInventory(app);
+} catch (e) {
+  console.warn('⚠️  Inventory module not mounted:', e.message);
+}
+
 const DATA_DIR = path.join(__dirname, 'data');
 const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const TABLES_FILE = path.join(DATA_DIR, 'tables.json');

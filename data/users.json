@@ -6,8 +6,8 @@
     "last_name": "User",
     "email": "admin@cafe.com",
     "role": "admin",
-    "pin_hash": "$2a$10$n/5ovVEfR.trtq6YReohmepnGEcP9nkhV3cay9LczRsw5gB6YFpzK",
-    "password_hash": "$2a$10$4C92okITNt24O3rwA3mUBe4oC3hjhYaOLNYvZEr6fhup1W7874ycO",
+    "pin_hash": "$2a$10$uvg6WG.TwXmZRc5q66Qw7OZ9weQpjG9hYe33tDSLMDEBCCfo4IChq",
+    "password_hash": "$2a$10$jyk5gnl2j8u4d2Buf0t1wu.LzXglQZGqg2QjUiH49fWpf/asZl/m.",
     "is_active": true
   },
   {
@@ -30,8 +30,8 @@
     "last_name": "Baker",
     "email": "sarah@cafe.com",
     "role": "bakery_employee",
-    "pin_hash": "$2a$10$hP395XMo4Mt.1YiemrZxZuQros5w8ZegEqU6jYBZ1poT.ob9o96Ym",
-    "password_hash": "$2a$10$Ge3TC.6ikRodm7GqdSCWbeEP1FEFR9JwRHOo4LemssbHJg.Jt2NMC"
+    "pin_hash": "$2a$10$g9udLkYPejTBVJwnMf5EfOI.obvIOIGBOx9A6tH8w1guCVWLxT5/y",
+    "password_hash": "$2a$10$Krf7AcC7K5/ifXkiXvD6Vuo86kAC2Du9tsZdImIOJYT4BWHCJujZi"
   },
   {
     "id": 5,
@@ -40,8 +40,8 @@
     "last_name": "Kitchen",
     "email": "tom@cafe.com",
     "role": "kitchen_staff",
-    "pin_hash": "$2a$10$OIo6tIRZsFb5nayVZdHeT.eVA7TgnrQ2DLtidXzkq4mKGP2nZIOFe",
-    "password_hash": "$2a$10$CwDsT21HUibGor.FIEEW8.qWWyV7D/nexRtFK6odx5FBofHMwNvv6"
+    "pin_hash": "$2a$10$gBR/Yq.STwMNJs1/o0yS2utC1YDD1wMMS6DTxq0uXxgAjsXt1Duyq",
+    "password_hash": "$2a$10$N0lQ9ot5jme52sEXSxBoiexp/t94Zc4koF.LbxXQm8/cgrhfnnM6S"
   },
   {
     "id": 6,
@@ -198,5 +198,44 @@
     "created_at": "2026-05-21T07:27:09.586Z",
     "updated_at": "2026-05-21T07:27:09.586Z",
     "pin_hash": "$2a$10$nO3ZuU8MhiNB0VoDfwYflOJPV2NHOdhhBNiDdq0IZLlW0O2Swo8B."
+  },
+  {
+    "id": 18,
+    "username": "tsega7",
+    "first_name": "tsega7",
+    "last_name": "",
+    "full_name": "tsega7",
+    "email": "tsegiti43@gmail.com",
+    "role": "fnb_manager",
+    "is_active": true,
+    "created_at": "2026-05-27T15:05:58.988Z",
+    "updated_at": "2026-05-27T15:05:58.988Z",
+    "pin_hash": "$2a$10$/s8pQ6U5SvcqC1AY6KSb7.L3XxauaQaEg0EowpkF98bhoPZSu9wsu"
+  },
+  {
+    "id": 19,
+    "username": "admin77",
+    "first_name": "ronal7",
+    "last_name": "",
+    "full_name": "ronal7",
+    "email": "messom68@gmail.com",
+    "role": "store_admin",
+    "is_active": true,
+    "created_at": "2026-05-27T15:08:09.769Z",
+    "updated_at": "2026-05-27T15:08:09.769Z",
+    "pin_hash": "$2a$10$JBE8FG6W.Ibft/qO9LzxUuYEaMcTxhGwCrRPUTkpenwLF3GKDS14q"
+  },
+  {
+    "id": 20,
+    "username": "tsega45",
+    "first_name": "tsega",
+    "last_name": "",
+    "full_name": "tsega",
+    "email": "ansthadept@gmail.com",
+    "role": "fnb_manager",
+    "is_active": true,
+    "created_at": "2026-05-29T02:08:08.217Z",
+    "updated_at": "2026-05-29T02:08:08.217Z",
+    "pin_hash": "$2a$10$lYY64E9EzqnrCqZczki21OHezp2KL5TFgdgvtHR9BefutbRilie5m"
   }
 ]

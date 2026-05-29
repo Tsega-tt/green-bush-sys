@@ -19,8 +19,8 @@ class AuthController {
       // Find user by name - using direct database query
       const db = require('../config/database');
       const query = `
-        SELECT id, username, email, password_hash, pin_hash, role, first_name, last_name, phone, is_active
-        FROM users 
+        SELECT id, username, email, password_hash, pin_hash, role, first_name, last_name, phone, is_active, store_id
+        FROM users
         WHERE LOWER(TRIM(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))) = LOWER(TRIM($1))
            OR LOWER(TRIM(COALESCE(first_name, ''))) = LOWER(TRIM($1))
            OR LOWER(TRIM(COALESCE(last_name, ''))) = LOWER(TRIM($1))
@@ -77,6 +77,7 @@ class AuthController {
         username: user.username,
         email: user.email,
         role: user.role,
+        store_id: user.store_id,
         full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         first_name: user.first_name,
         last_name: user.last_name
@@ -114,7 +115,7 @@ class AuthController {
       // Direct database query
       const db = require('../config/database');
       const query = `
-        SELECT id, username, email, password_hash, role, first_name, last_name, phone, is_active
+        SELECT id, username, email, password_hash, role, first_name, last_name, phone, is_active, store_id
         FROM users WHERE username = $1
       `;
       
@@ -150,6 +151,7 @@ class AuthController {
         username: user.username,
         email: user.email,
         role: user.role,
+        store_id: user.store_id,
         full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         first_name: user.first_name,
         last_name: user.last_name
@@ -188,8 +190,8 @@ class AuthController {
       // Find user by name
       const db = require('../config/database');
       const query = `
-        SELECT id, username, email, password_hash, role, first_name, last_name, phone, is_active
-        FROM users 
+        SELECT id, username, email, password_hash, role, first_name, last_name, phone, is_active, store_id
+        FROM users
         WHERE LOWER(first_name || ' ' || last_name) = LOWER($1)
            OR LOWER(first_name) = LOWER($1)
            OR LOWER(last_name) = LOWER($1)
@@ -228,6 +230,7 @@ class AuthController {
         username: user.username,
         email: user.email,
         role: user.role,
+        store_id: user.store_id,
         full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         first_name: user.first_name,
         last_name: user.last_name

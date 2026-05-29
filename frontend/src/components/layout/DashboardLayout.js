@@ -21,7 +21,6 @@ import {
   FiPackage,
   FiArchive,
   FiSend,
-  FiCheckSquare,
   FiGrid,
   FiFileText,
   FiTruck
@@ -87,7 +86,6 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
 
   const filtersEnabled = user?.role === 'admin' || user?.role === 'cashier';
-  const NEW_ROLES = ['hr_admin', 'store_admin', 'fnb_manager'];
 
   // Navigation items based on user role
   const getNavigationItems = () => {
@@ -127,6 +125,26 @@ const DashboardLayout = ({ children }) => {
       { name: 'Store Inventory',      href: '/dashboard/store-inventory',        icon: FiArchive,   roles: ['store_admin', 'fnb_manager', 'admin'] },
       { name: 'Item Requests',        href: '/dashboard/item-requests',          icon: FiSend,      roles: ['store_admin', 'fnb_manager', 'admin', 'item_request'] },
       { name: 'Purchase Requisitions', href: '/dashboard/purchase-requisitions', icon: FiFileText,  roles: ['store_admin', 'fnb_manager', 'owner', 'admin'] },
+
+      // PostgreSQL inventory module (Phases 0-7)
+      { name: 'Inventory',        href: '/dashboard/inventory-pg',               icon: FiPackage,    roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Balances',         href: '/dashboard/inventory-pg/balances',      icon: FiArchive,    roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Transfers',        href: '/dashboard/inventory-pg/transfers',     icon: FiSend,       roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchasing',       href: '/dashboard/inventory-pg/purchasing',    icon: FiShoppingBag, roles: ['purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Requests', href: '/dashboard/inventory-pg/purchase-requests', icon: FiFileText, roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Approvals',        href: '/dashboard/inventory-pg/approvals',     icon: FiClipboard,  roles: ['fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Orders',  href: '/dashboard/inventory-pg/purchase-orders', icon: FiClipboard, roles: ['purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Receive Goods',    href: '/dashboard/inventory-pg/goods-receipts', icon: FiTruck,     roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Stock Counts',     href: '/dashboard/inventory-pg/stock-counts',  icon: FiClipboard,  roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Waste',            href: '/dashboard/inventory-pg/waste',         icon: FiClock,      roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Daily Closing',    href: '/dashboard/inventory-pg/daily-closing', icon: FiDollarSign, roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Kegs',             href: '/dashboard/inventory-pg/kegs',          icon: FiPackage,    roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Batches & Expiry', href: '/dashboard/inventory-pg/batches',       icon: FiArchive,    roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Suppliers',        href: '/dashboard/inventory-pg/suppliers',     icon: FiUsers,      roles: ['purchaser', 'fnb_manager', 'admin'] },
+      { name: 'Items',            href: '/dashboard/inventory-pg/items',         icon: FiPackage,    roles: ['fnb_manager', 'owner', 'admin'] },
+      { name: 'Inv Reports',      href: '/dashboard/inventory-pg/reports',       icon: FiBarChart2,  roles: ['fnb_manager', 'owner', 'admin'] },
+      { name: 'Inv Alerts',       href: '/dashboard/inventory-pg/alerts',        icon: FiClock,      roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Audit Log',        href: '/dashboard/inventory-pg/audit-log',     icon: FiFileText,   roles: ['owner', 'admin'] },
 
     ];
 

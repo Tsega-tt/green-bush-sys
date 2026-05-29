@@ -54,7 +54,12 @@ api.interceptors.request.use(
           const rawId = userData?.id ?? userData?.user_id ?? null;
           const userId = rawId != null ? parseInt(rawId, 10) : null;
           if (!Number.isFinite(userId)) return config;
-          
+
+          // Always expose the user id via header so GET endpoints (e.g. the
+          // inventory module's resolveUser) authenticate without a body.
+          config.headers = config.headers || {};
+          config.headers['x-user-id'] = userId;
+
           // Add user_id to request body for POST/PUT/PATCH requests (only if not already present)
           if (config.method !== 'get') {
             if (config.data && typeof config.data === 'object') {

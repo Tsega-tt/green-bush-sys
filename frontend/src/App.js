@@ -48,6 +48,26 @@ import HRAdminDashboard from './pages/dashboards/HRAdminDashboard';
 import OwnerDashboard from './pages/dashboards/OwnerDashboard';
 import PurchaseRequisition from './pages/PurchaseRequisition';
 
+// PostgreSQL inventory module (Phases 0-7)
+import InventoryDashboard from './pages/inventory/InventoryDashboard';
+import InventoryBalances from './pages/inventory/InventoryBalances';
+import InventoryTransfers from './pages/inventory/Transfers';
+import InventoryApprovals from './pages/inventory/Approvals';
+import InventoryAlerts from './pages/inventory/Alerts';
+import PurchasingDashboard from './pages/inventory/PurchasingDashboard';
+import PurchaseRequests from './pages/inventory/PurchaseRequests';
+import PurchaseOrders from './pages/inventory/PurchaseOrders';
+import GoodsReceipts from './pages/inventory/GoodsReceipts';
+import Suppliers from './pages/inventory/Suppliers';
+import ItemsMaster from './pages/inventory/ItemsMaster';
+import Waste from './pages/inventory/Waste';
+import StockCounts from './pages/inventory/StockCounts';
+import DailyClosing from './pages/inventory/DailyClosing';
+import Kegs from './pages/inventory/Kegs';
+import InventoryReports from './pages/inventory/Reports';
+import BatchExpiry from './pages/inventory/BatchExpiry';
+import AuditLog from './pages/inventory/AuditLog';
+
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -65,6 +85,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const getHomePath = () => {
       if (user?.role === 'cafe_waiter') return "/waiter/create-order";
       if (user?.role === 'bakery_employee') return "/bakery/create-order";
+      if (user?.role === 'store_manager') return "/dashboard/inventory-pg";
+      if (user?.role === 'purchaser') return "/dashboard/inventory-pg/purchasing";
       return "/dashboard";
     };
     return <Navigate to={getHomePath()} replace />;
@@ -121,6 +143,10 @@ const DashboardRouter = () => {
         return <HRAdminDashboard />;
       case 'store_admin':
         return <StoreAdminDashboard />;
+      case 'store_manager':
+        return <InventoryDashboard />;
+      case 'purchaser':
+        return <PurchasingDashboard />;
       case 'fnb_manager':
         return <FnbManagerDashboard />;
       case 'owner':
@@ -225,13 +251,159 @@ const DashboardRouter = () => {
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="attendance" 
+        {/* PostgreSQL inventory module (Phases 0-7) — mounted under inventory-pg
+            to coexist with the legacy /dashboard/inventory page. */}
+        <Route
+          path="inventory-pg"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+              <InventoryDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/balances"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <InventoryBalances />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/transfers"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <InventoryTransfers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/approvals"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
+              <InventoryApprovals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/alerts"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <InventoryAlerts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/purchasing"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+              <PurchasingDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/purchase-requests"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+              <PurchaseRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/purchase-orders"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'purchaser']}>
+              <PurchaseOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/goods-receipts"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+              <GoodsReceipts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/suppliers"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'fnb_manager', 'purchaser']}>
+              <Suppliers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/items"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
+              <ItemsMaster />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/waste"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <Waste />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/stock-counts"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <StockCounts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/daily-closing"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <DailyClosing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/kegs"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <Kegs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/reports"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
+              <InventoryReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/batches"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
+              <BatchExpiry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/audit-log"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner']}>
+              <AuditLog />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="attendance"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AttendanceManagement />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route 
           path="tables" 
@@ -320,21 +492,20 @@ const AppContent = () => {
 
   // Determine redirect path based on user role
   const getRedirectPath = () => {
-    console.log('🔍 getRedirectPath - isAuthenticated:', isAuthenticated);
-    console.log('🔍 getRedirectPath - user:', user);
-    console.log('🔍 getRedirectPath - user role:', user?.role);
-    
     if (!isAuthenticated) return "/login";
-    if (user?.role === 'cafe_waiter') {
-      console.log('✅ Redirecting cafe_waiter to /waiter/create-order');
-      return "/waiter/create-order";
+    switch (user?.role) {
+      case 'cafe_waiter':
+        return "/waiter/create-order";
+      case 'bakery_employee':
+        return "/bakery/create-order";
+      // Inventory-focused roles land directly on the surface they work in.
+      case 'store_manager':
+        return "/dashboard/inventory-pg";
+      case 'purchaser':
+        return "/dashboard/inventory-pg/purchasing";
+      default:
+        return "/dashboard";
     }
-    if (user?.role === 'bakery_employee') {
-      console.log('✅ Redirecting bakery_employee to /bakery/create-order');
-      return "/bakery/create-order";
-    }
-    console.log('⚠️ Default redirect to /dashboard for role:', user?.role);
-    return "/dashboard";
   };
 
   return (
@@ -371,7 +542,7 @@ const AppContent = () => {
       <Route 
         path="/dashboard/*" 
         element={
-          <ProtectedRoute allowedRoles={['admin', 'cashier', 'kitchen_staff', 'hr_admin', 'store_admin', 'fnb_manager', 'owner', 'item_request', 'cafe_waiter', 'bakery_employee']}>
+          <ProtectedRoute allowedRoles={['admin', 'cashier', 'kitchen_staff', 'hr_admin', 'store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'item_request', 'cafe_waiter', 'bakery_employee']}>
             <DashboardRouter />
           </ProtectedRoute>
         } 

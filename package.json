@@ -14,7 +14,19 @@
     "fix-orders": "node scripts/fixOrdersTable.js",
     "clean-orders": "node scripts/cleanOrdersTable.js",
     "add-order-types": "node scripts/addOrderItemTypes.js",
-    "add-hr-management": "node scripts/addHRManagement.js"
+    "add-hr-management": "node scripts/addHRManagement.js",
+    "inv:migrate": "node scripts/inventory/migrate.js up",
+    "inv:migrate:down": "node scripts/inventory/migrate.js down",
+    "inv:migrate:redo": "node scripts/inventory/migrate.js down && node scripts/inventory/migrate.js up",
+    "inv:migrate-json": "node scripts/inventory/migrateJsonToPg.js",
+    "inv:reset-ledger": "node scripts/inventory/resetInventoryLedger.js",
+    "inv:seed-users": "node scripts/inventory/seedTestUsers.js",
+    "inv:verify": "node scripts/inventory/verifyMigration.js",
+    "inv:snapshot": "node scripts/inventory/runSnapshot.js",
+    "inv:fraud-scan": "node scripts/inventory/runFraudScan.js",
+    "inv:backup": "node scripts/inventory/backup.js",
+    "inv:concurrency-test": "node scripts/inventory/concurrencyTest.js",
+    "inv:test": "node --test \"inventory/__tests__/wac.test.js\" \"inventory/__tests__/ledger.integration.test.js\""
   },
   "keywords": [
     "bakery",
@@ -35,12 +47,14 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.0.0",
     "morgan": "^1.10.0",
+    "multer": "^2.1.1",
     "pg": "^8.11.3",
     "qrcode": "^1.5.3",
     "sharp": "^0.34.5",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "node-pg-migrate": "^7.9.0",
     "nodemon": "^3.1.11"
   }
 }
