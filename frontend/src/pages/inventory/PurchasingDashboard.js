@@ -2,19 +2,24 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import inventoryApi from '../../services/inventoryApi';
 import useInventoryEvents from '../../hooks/useInventoryEvents';
+import { useAuth } from '../../context/AuthContext';
+import { fetchLegacyApprovedPRs } from '../../utils/legacyPrBridge';
 import { PageHeader, StatCard, DataTable, StatusBadge, Btn, fmtMoney, fmtDate, useApiResource } from '../../components/inventory/kit';
 
 const base = '/dashboard/inventory-pg';
 
 export default function PurchasingDashboard() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const pr = useApiResource(() => inventoryApi.pr.list({ status: 'pending_fnb' }).then((r) => r.data.data.requisitions || []), []);
   const prOwner = useApiResource(() => inventoryApi.pr.list({ status: 'pending_owner' }).then((r) => r.data.data.requisitions || []), []);
-  // Approved PRs awaiting the purchaser to raise a PO (approved + partially_approved).
+  // Approved PRs awaiting the purchaser to raise a PO (PG approved/partially_approved
+  // plus bridged legacy approved requests).
   const prReady = useApiResource(() => Promise.all([
     inventoryApi.pr.list({ status: 'approved' }),
     inventoryApi.pr.list({ status: 'partially_approved' }),
-  ]).then(([a, b]) => [...(a.data.data.requisitions || []), ...(b.data.data.requisitions || [])]), []);
+    fetchLegacyApprovedPRs(user),
+  ]).then(([a, b, legacy]) => [...(a.data.data.requisitions || []), ...(b.data.data.requisitions || []), ...legacy]), [user]);
   const po = useApiResource(() => inventoryApi.po.list({ status: 'issued' }).then((r) => r.data.data.orders || []), []);
   const grn = useApiResource(() => inventoryApi.grn.list({ status: 'draft' }).then((r) => r.data.data.receipts || []), []);
 

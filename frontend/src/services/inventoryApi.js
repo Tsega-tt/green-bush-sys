@@ -104,6 +104,13 @@ const inventoryApi = {
     ownerApprove: (id) => api.patch(`${P}/purchase-requisitions/${id}/owner-approve`),
     reject: (id, reason) => api.patch(`${P}/purchase-requisitions/${id}/reject`, { reason }),
   },
+  // Legacy JSON-store PRs (created/approved on the standalone "Purchase
+  // Requisitions" page). Bridged into the purchaser's PG screens so approved
+  // legacy PRs are visible and can be turned into POs.
+  legacyPr: {
+    list: (params) => api.get('/purchase-requisitions', { params }),
+    close: (id, data) => api.patch(`/purchase-requisitions/${id}/close`, data || {}),
+  },
   po: {
     list: (params) => api.get(`${P}/purchase-orders`, { params }),
     get: (id) => api.get(`${P}/purchase-orders/${id}`),

@@ -7203,6 +7203,24 @@ app.patch('/api/purchase-requisitions/:id/reject', (req, res) => {
   res.json({ status: 'success', data: { requisition: pr }, requisition: pr });
 });
 
+// PATCH /api/purchase-requisitions/:id/close
+// Marks a legacy PR closed once the purchaser has raised a PO from it in the PG
+// module (bridge). Idempotent: closing an already-closed PR is a no-op success.
+app.patch('/api/purchase-requisitions/:id/close', (req, res) => {
+  const pr = MOCK_PURCHASE_REQUISITIONS.find(r => r.id === parseInt(req.params.id, 10));
+  if (!pr) return res.status(404).json({ status: 'error', message: 'Not found' });
+  const { actor_id, actor_name, po_number } = req.body || {};
+  if (pr.status === 'closed') {
+    return res.json({ status: 'success', data: { requisition: pr }, requisition: pr });
+  }
+  const now = new Date().toISOString();
+  Object.assign(pr, { status: 'closed', updated_at: now });
+  pr.audit_log.push({ action: 'closed', actor_id: actor_id || null, actor_name: actor_name || 'Purchaser',
+    timestamp: now, note: po_number ? `PO ${po_number} raised` : 'Purchase order raised' });
+  savePRToDisk();
+  res.json({ status: 'success', data: { requisition: pr }, requisition: pr });
+});
+
 // ============================================================
 
 const DEV_BIND_HOST = IS_PROD ? '0.0.0.0' : '127.0.0.1';

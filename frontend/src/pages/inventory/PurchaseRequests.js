@@ -5,6 +5,7 @@ import useMasterData from '../../hooks/useMasterData';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/invPermissions';
 import AttachmentsPanel from '../../components/inventory/AttachmentsPanel';
+import { fetchLegacyPRs } from '../../utils/legacyPrBridge';
 import { PageHeader, Btn, DataTable, Modal, Select, TextInput, StatusBadge, fmtMoney, fmtDate, useApiResource, useSubmitGuard } from '../../components/inventory/kit';
 
 const FNB = ['admin', 'owner', 'fnb_manager'];
@@ -17,20 +18,30 @@ export default function PurchaseRequests() {
   const canCreate = can(user?.role, 'receiveGoods');
   const [status, setStatus] = useState('');
   const [creating, setCreating] = useState(false);
-  const [openId, setOpenId] = useState(null);
+  const [openRow, setOpenRow] = useState(null);
 
+  // Merge PG PRs with legacy (bridged) PRs so the purchaser sees both.
   const { data, loading, error, refetch } = useApiResource(
-    () => inventoryApi.pr.list({ status: status || undefined }).then((r) => r.data.data.requisitions || []),
-    [status]
+    async () => {
+      const [pgRows, legacyRows] = await Promise.all([
+        inventoryApi.pr.list({ status: status || undefined }).then((r) => r.data.data.requisitions || []),
+        fetchLegacyPRs({ user }),
+      ]);
+      const legacy = status ? legacyRows.filter((l) => l.status === status) : legacyRows;
+      return [...pgRows, ...legacy].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    },
+    [status, user]
   );
 
   const columns = [
-    { key: 'pr_number', label: 'PR #', render: (r) => <span className="font-mono text-xs">{r.pr_number}</span> },
+    { key: 'pr_number', label: 'PR #', render: (r) => (
+      <span className="font-mono text-xs">{r.pr_number}{r.is_legacy && <span className="ml-1 text-[10px] text-gray-400">(req)</span>}</span>
+    ) },
     { key: 'store_name', label: 'Store' },
     { key: 'created_at', label: 'Raised', render: (r) => fmtDate(r.created_at) },
     { key: 'estimated_total', label: 'Est. total', align: 'right', render: (r) => fmtMoney(r.estimated_total) },
     { key: 'status', label: 'Status', render: (r) => <StatusBadge value={r.status} /> },
-    { key: 'actions', label: '', align: 'right', render: (r) => <Btn onClick={() => setOpenId(r.id)}>Open</Btn> },
+    { key: 'actions', label: '', align: 'right', render: (r) => <Btn onClick={() => setOpenRow(r)}>Open</Btn> },
   ];
 
   return (
@@ -45,8 +56,41 @@ export default function PurchaseRequests() {
       <DataTable columns={columns} rows={data || []} loading={loading} error={error} onRetry={refetch} empty="No requests" />
 
       {creating && <NewPR onClose={() => setCreating(false)} onDone={() => { setCreating(false); refetch(); }} />}
-      {openId && <PRDetail id={openId} isFnb={isFnb} isOwner={isOwner} onClose={() => { setOpenId(null); refetch(); }} />}
+      {openRow && (openRow.is_legacy
+        ? <LegacyPRDetail row={openRow} onClose={() => setOpenRow(null)} />
+        : <PRDetail id={openRow.id} isFnb={isFnb} isOwner={isOwner} onClose={() => { setOpenRow(null); refetch(); }} />)}
     </div>
+  );
+}
+
+// Read-only detail for a bridged legacy PR. Approval happens on the standalone
+// "Purchase Requisitions" page; here the purchaser just reviews it before
+// raising a PO (Purchase Orders → New order → From approved PR).
+function LegacyPRDetail({ row, onClose }) {
+  return (
+    <Modal title={`${row.pr_number} — ${row.store_name}`} onClose={onClose} wide>
+      <div className="flex items-center gap-3 mb-3">
+        <StatusBadge value={row.status} />
+        <span className="text-sm text-gray-500">Est. {fmtMoney(row.estimated_total)}</span>
+        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">From Purchase Requisitions page</span>
+      </div>
+      <DataTable
+        keyField="id"
+        columns={[
+          { key: 'description', label: 'Item', render: (r) => <span className="font-medium">{r.description}</span> },
+          { key: 'quantity_requested', label: 'Requested', align: 'right' },
+          { key: 'quantity_approved', label: 'Approved', align: 'right', render: (r) => (r.quantity_approved ?? '-') },
+          { key: 'uom', label: 'UoM', render: (r) => r.uom || '—' },
+          { key: 'est_unit_cost', label: 'Est. cost', align: 'right', render: (r) => fmtMoney(r.est_unit_cost) },
+        ]}
+        rows={row.lines || []} empty="No lines"
+      />
+      {['approved', 'partially_approved'].includes(row.status) && (
+        <p className="mt-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          Approved — raise a Purchase Order from <b>Purchase Orders → New order → From approved PR</b>.
+        </p>
+      )}
+    </Modal>
   );
 }
 

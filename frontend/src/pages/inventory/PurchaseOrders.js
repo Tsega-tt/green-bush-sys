@@ -5,6 +5,7 @@ import useMasterData from '../../hooks/useMasterData';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/invPermissions';
 import AttachmentsPanel from '../../components/inventory/AttachmentsPanel';
+import { fetchLegacyApprovedPRs } from '../../utils/legacyPrBridge';
 import { PageHeader, Btn, DataTable, Modal, Select, TextInput, StatusBadge, fmtMoney, fmtDay, useApiResource, useSubmitGuard } from '../../components/inventory/kit';
 
 export default function PurchaseOrders() {
@@ -47,6 +48,7 @@ export default function PurchaseOrders() {
 }
 
 function NewPO({ onClose, onDone }) {
+  const { user } = useAuth();
   const { items, suppliers } = useMasterData({ stores: false, items: true, suppliers: true });
   const [approvedPRs, setApprovedPRs] = useState([]);
   const [prId, setPrId] = useState('');
@@ -56,18 +58,27 @@ function NewPO({ onClose, onDone }) {
   const [busy, run] = useSubmitGuard();
 
   useEffect(() => {
-    Promise.all([inventoryApi.pr.list({ status: 'approved' }), inventoryApi.pr.list({ status: 'partially_approved' })])
-      .then(([a, b]) => setApprovedPRs([...(a.data.data.requisitions || []), ...(b.data.data.requisitions || [])]))
+    Promise.all([
+      inventoryApi.pr.list({ status: 'approved' }),
+      inventoryApi.pr.list({ status: 'partially_approved' }),
+      fetchLegacyApprovedPRs(user),
+    ])
+      .then(([a, b, legacy]) => setApprovedPRs([...(a.data.data.requisitions || []), ...(b.data.data.requisitions || []), ...legacy]))
       .catch(() => {});
-  }, []);
+  }, [user]);
+
+  const selectedPR = approvedPRs.find((p) => String(p.id) === String(prId));
 
   const loadFromPR = async (id) => {
     setPrId(id);
     if (!id) return;
     try {
-      const r = await inventoryApi.pr.get(id);
-      const pr = r.data.data.requisition;
-      setLines((pr.lines || []).map((l) => ({
+      // Legacy PRs already carry their normalized lines; PG PRs are fetched.
+      const sel = approvedPRs.find((p) => String(p.id) === String(id));
+      const prLines = sel?.is_legacy
+        ? (sel.lines || [])
+        : ((await inventoryApi.pr.get(id)).data.data.requisition.lines || []);
+      setLines(prLines.map((l) => ({
         item_id: l.item_id || '', description: l.description || '', uom: l.uom || '',
         quantity_ordered: l.quantity_approved ?? l.quantity_requested, unit_cost: l.est_unit_cost || '',
       })));
@@ -87,10 +98,21 @@ function NewPO({ onClose, onDone }) {
     if (clean.length === 0) { toast.error('Add at least one priced line'); return; }
     run(async () => {
       try {
-        await inventoryApi.po.create({
-          pr_id: prId ? Number(prId) : undefined, supplier_id: Number(supplierId), expected_date: expected || undefined,
+        // Legacy PRs don't exist in the PG table, so the PO is raised as a manual
+        // order (no pr_id); the legacy PR is then closed via the bridge endpoint.
+        const isLegacy = !!selectedPR?.is_legacy;
+        const order = await inventoryApi.po.create({
+          pr_id: prId && !isLegacy ? Number(prId) : undefined, supplier_id: Number(supplierId), expected_date: expected || undefined,
           lines: clean.map((l) => ({ item_id: Number(l.item_id), description: l.description || undefined, uom: l.uom || undefined, quantity_ordered: Number(l.quantity_ordered), unit_cost: Number(l.unit_cost) })),
         });
+        if (isLegacy) {
+          try {
+            await inventoryApi.legacyPr.close(selectedPR.legacy_id, {
+              actor_id: user?.id, actor_name: user?.full_name || user?.username,
+              po_number: order?.data?.data?.order?.po_number,
+            });
+          } catch { /* PO is created; closing the legacy PR is best-effort */ }
+        }
         toast.success('Order created');
         onDone();
       } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
@@ -105,7 +127,7 @@ function NewPO({ onClose, onDone }) {
         <div className="grid grid-cols-3 gap-3">
           <Select label="From approved PR (optional)" value={prId} onChange={(e) => loadFromPR(e.target.value)}>
             <option value="">Manual order</option>
-            {approvedPRs.map((p) => <option key={p.id} value={p.id}>{p.pr_number} — {p.store_name}</option>)}
+            {approvedPRs.map((p) => <option key={p.id} value={p.id}>{p.pr_number} — {p.store_name}{p.is_legacy ? ' (req)' : ''}</option>)}
           </Select>
           <Select label="Supplier" required value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
             <option value="">Select…</option>
