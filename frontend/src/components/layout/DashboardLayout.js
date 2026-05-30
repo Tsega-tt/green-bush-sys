@@ -125,13 +125,13 @@ const DashboardLayout = ({ children }) => {
       // Store Admin items
       { name: 'Store Inventory',      href: '/dashboard/store-inventory',        icon: FiArchive,   roles: ['store_admin', 'fnb_manager', 'admin'] },
       { name: 'Item Requests',        href: '/dashboard/item-requests',          icon: FiSend,      roles: ['store_admin', 'fnb_manager', 'admin', 'item_request'] },
-      { name: 'Purchase Requisitions', href: '/dashboard/purchase-requisitions', icon: FiFileText,  roles: ['fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Requisitions', href: '/dashboard/purchase-requisitions', icon: FiFileText,  roles: ['store_admin', 'fnb_manager', 'owner', 'admin'] },
 
       // PostgreSQL inventory module (Phases 0-7)
       { name: 'Inventory',        href: '/dashboard/inventory-pg',               icon: FiPackage,    roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Transfers',        href: '/dashboard/inventory-pg/transfers',     icon: FiSend,       roles: ['store_admin', 'store_manager', 'owner', 'admin'] },
       { name: 'Purchasing',       href: '/dashboard/inventory-pg/purchasing',    icon: FiShoppingBag, roles: ['owner', 'admin'] },
-      { name: 'Purchase Requests', href: '/dashboard/inventory-pg/purchase-requests', icon: FiFileText, roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Requests', href: '/dashboard/inventory-pg/purchase-requests', icon: FiFileText, roles: ['store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Approvals',        href: '/dashboard/inventory-pg/approvals',     icon: FiClipboard,  roles: ['fnb_manager', 'owner', 'admin'] },
       { name: 'Purchase Orders',  href: '/dashboard/inventory-pg/purchase-orders', icon: FiClipboard, roles: ['owner', 'admin'] },
       { name: 'Receive Goods',    href: '/dashboard/inventory-pg/goods-receipts', icon: FiTruck,     roles: ['store_manager', 'owner', 'admin'] },
