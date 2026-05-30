@@ -44,7 +44,9 @@ export default function StoreInventory() {
     inventoryApi.uoms.list().then((r) => setUoms(r.data.data.uoms || [])).catch(() => {});
   }, []);
 
-  const canEdit = ['admin', 'store_admin', 'store_manager', 'fnb_manager'].includes(user?.role);
+  // store_admin is read-only here — item create/edit/delete is for admin and
+  // the store/F&B managers only.
+  const canEdit = ['admin', 'store_manager', 'fnb_manager'].includes(user?.role);
   const isAdmin = user?.role === 'admin'; // store edit/delete is admin-only (backend: manageStores)
 
   // Load the real PostgreSQL stores (same source as the inventory module).
