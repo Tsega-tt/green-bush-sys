@@ -7139,19 +7139,24 @@ app.post('/api/purchase-requisitions', async (req, res) => {
     const qty  = parseFloat(quantity);
     const cost = parseFloat(unit_cost);
     const now  = new Date().toISOString();
+    // F&B approval is bypassed for now: PRs are auto-approved on creation so
+    // they flow straight to the assigned purchaser.
     const pr = {
       id, req_number: `PR-${String(id).padStart(5, '0')}`,
       store_id: parseInt(store_id, 10), store_name: store.name,
       purchaser_id: purchaser_id ? parseInt(purchaser_id, 10) : null,
       item_id: finalItemId,
       item_name: String(item_name).trim(), item_code: item_code || '', supplier: supplier || '',
-      quantity: qty, approved_quantity: null, unit_cost: cost, estimated_cost: qty * cost,
-      notes: notes || '', status: 'pending_fnb',
+      quantity: qty, approved_quantity: qty, unit_cost: cost, estimated_cost: qty * cost,
+      notes: notes || '', status: 'approved',
       created_by_id, created_by_name: created_by_name || '',
       created_at: now, updated_at: now,
-      approved_by_id: null, approved_by_name: null, approved_at: null,
+      approved_by_id: null, approved_by_name: 'Auto-approved', approved_at: now,
       rejected_by_id: null, rejected_by_name: null, rejected_at: null, rejection_note: null,
-      audit_log: [{ action: 'created', actor_id: created_by_id, actor_name: created_by_name || 'Unknown', timestamp: now, note: 'PR created' }],
+      audit_log: [
+        { action: 'created', actor_id: created_by_id, actor_name: created_by_name || 'Unknown', timestamp: now, note: 'PR created' },
+        { action: 'approved', actor_id: null, actor_name: 'System', timestamp: now, note: 'Auto-approved (F&B approval disabled)' },
+      ],
     };
     MOCK_PURCHASE_REQUISITIONS.push(pr);
     savePRToDisk();
