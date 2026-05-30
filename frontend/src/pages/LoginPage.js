@@ -313,18 +313,15 @@ const LoginPage = () => {
         <div className="flex justify-center items-center space-x-2 mb-4">
           <div className="relative">
             <img
-              src="/assets/logo.png"
+              src="/assets/syntax.jpg"
               alt="Logo"
               className="w-60 h-60 object-contain bg-white"
             />
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-7 px-3 py-1 bg-white text-[11px] font-bold tracking-widest uppercase text-gray-800">
-              - BRANCH 2 -
-            </div>
           </div>
         </div>
         <BranchBadge className="mt-2" />
         <div className="mt-2 text-base sm:text-lg font-extrabold tracking-widest uppercase text-gray-800">
-          Kidist Shiro -Branch-2
+          GREEN BUSH GARDEN
         </div>
         <div className="mt-2">
           <a
@@ -648,7 +645,7 @@ const LoginPage = () => {
         
         <div className="flex justify-center items-center space-x-2 mb-4">
           <img
-            src="/assets/logo.png"
+            src="/assets/syntax.jpg"
             alt="Logo"
             className="w-20 h-20 object-contain"
           />
@@ -816,7 +813,7 @@ const LoginPage = () => {
         <div className="text-center text-sm text-gray-500 mt-8">
           <div className="flex justify-center">
             <img
-              src="/assets/logo.png"
+              src="/assets/syntax.jpg"
               alt="Logo"
               className="w-10 h-10 object-contain"
             />
