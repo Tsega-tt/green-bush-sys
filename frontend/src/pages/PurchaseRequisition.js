@@ -88,14 +88,14 @@ export default function PurchaseRequisition() {
             <FiFileText className="w-6 h-6" /> Purchase Requisitions
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            {isOwner ? 'Read-only overview — auto-refreshes every 30s' : isFnb ? 'Review & approve pending requisitions' : 'Create and track purchase requisitions'}
+            {isOwner ? 'Read-only overview — auto-refreshes every 30s' : isFnb ? 'Create, review & approve requisitions' : 'Create and track purchase requisitions'}
           </p>
         </div>
         <div className="flex gap-2">
           <button onClick={fetchAll} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 text-gray-300">
             <FiRefreshCw className="w-4 h-4" /> Refresh
           </button>
-          {isStoreAdmin && (
+          {(isStoreAdmin || isFnb) && (
             <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-gray-950 text-sm font-semibold rounded-lg hover:bg-amber-400">
               <FiPlus className="w-4 h-4" /> New Requisition
             </button>
