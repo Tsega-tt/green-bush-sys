@@ -12,7 +12,7 @@ const STORAGE_ROOT = path.resolve(process.env.INVENTORY_STORAGE_ROOT || './data/
 
 const VALID_ENTITIES = new Set([
   'purchase_requisition', 'purchase_order', 'goods_receipt', 'transfer',
-  'stock_count', 'waste', 'audit', 'invoice', 'other',
+  'stock_count', 'waste', 'audit', 'invoice', 'other', 'acceptance_batch',
 ]);
 
 function sha256(filePath) {

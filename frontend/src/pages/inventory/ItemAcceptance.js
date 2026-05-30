@@ -175,6 +175,7 @@ function SubmitModal({ onClose, onDone, purchaserName }) {
   const [suppliers, setSuppliers] = useState([]);
   const [uoms, setUoms] = useState([]);
   const [head, setHead] = useState({ supplier_id: '', supplier_name: '', supplier_info: '', invoice_number: '', grn_number: '', notes: '' });
+  const [grnFile, setGrnFile] = useState(null);
   const [lines, setLines] = useState([emptyLine()]);
   const [busy, run] = useSubmitGuard();
 
@@ -200,7 +201,7 @@ function SubmitModal({ onClose, onDone, purchaserName }) {
     if (!clean.length) { toast.error('Add at least one item with description, quantity and destination store'); return; }
     try {
       const sup = suppliers.find((s) => String(s.id) === String(head.supplier_id));
-      await inventoryApi.acceptance.createBatch({
+      const res = await inventoryApi.acceptance.createBatch({
         purchaser_name: purchaserName,
         supplier_id: head.supplier_id || undefined,
         supplier_name: head.supplier_name || (sup ? sup.name : undefined),
@@ -214,6 +215,20 @@ function SubmitModal({ onClose, onDone, purchaserName }) {
           quantity: Number(l.quantity), unit_cost: Number(l.unit_cost) || 0, destination_store_id: Number(l.destination_store_id),
         })),
       });
+      // Attach the GRN document to the new batch, if one was provided.
+      const batchId = res?.data?.data?.batch?.id;
+      if (grnFile && batchId) {
+        try {
+          const fd = new FormData();
+          fd.append('file', grnFile);
+          fd.append('entity_type', 'acceptance_batch');
+          fd.append('entity_id', batchId);
+          fd.append('doc_label', 'grn');
+          await inventoryApi.attachments.upload(fd);
+        } catch {
+          toast.error('Items submitted, but the GRN file failed to upload — attach it from the item detail.');
+        }
+      }
       toast.success('Submitted for F&B review');
       onDone();
     } catch (err) { toast.error(err.response?.data?.message || 'Submit failed'); }
@@ -237,7 +252,19 @@ function SubmitModal({ onClose, onDone, purchaserName }) {
             <TextInput label="Supplier name (if not listed)" value={head.supplier_name} onChange={(e) => setHead({ ...head, supplier_name: e.target.value })} />
             <TextInput label="Supplier info (phone / address / TIN)" value={head.supplier_info} onChange={(e) => setHead({ ...head, supplier_info: e.target.value })} />
           </div>
-          <p className="text-xs text-gray-400 mt-2">Tip: attach the scanned receipt/invoice file from the item detail after submitting (Documents).</p>
+          {/* GRN document upload — attached to the batch on submit */}
+          <div className="mt-3">
+            <span className="block text-xs font-semibold text-gray-500 mb-1">GRN document (scan / PDF)</span>
+            <div className="flex items-center gap-2">
+              <input type="file" accept="image/*,application/pdf" className="text-sm"
+                onChange={(e) => setGrnFile(e.target.files[0] || null)} />
+              {grnFile && (
+                <button type="button" className="text-xs text-red-500" onClick={() => setGrnFile(null)}>clear</button>
+              )}
+            </div>
+            {grnFile && <p className="text-xs text-gray-500 mt-1">Selected: {grnFile.name}</p>}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">The GRN file is attached to this receiving on submit. You can add more documents (invoice, delivery note) from the item detail later.</p>
         </div>
 
         {/* Item lines */}
@@ -266,8 +293,11 @@ function SubmitModal({ onClose, onDone, purchaserName }) {
 
               {/* New item: full add-item fields */}
               {l._mode === 'new' && (
-                <div className="mt-3 border rounded-lg p-3 bg-teal-50/50 space-y-3">
-                  <div className="text-xs font-semibold text-teal-700">New item details (added to inventory master)</div>
+                <div className="mt-3 border-2 border-teal-300 rounded-lg p-3 bg-teal-50/50 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-white bg-teal-600 px-2 py-0.5 rounded">New Item</span>
+                    <span className="text-xs text-teal-700">Defines a brand-new item — added to the inventory master after acceptance.</span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <TextInput label="Description *" value={l.description} onChange={(e) => setLine(i, { description: e.target.value })} />
                     <TextInput label="Item code (auto if blank)" value={l.item_code || ''} onChange={(e) => setLine(i, { item_code: e.target.value })} />
