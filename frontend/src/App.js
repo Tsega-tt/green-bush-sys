@@ -245,7 +245,7 @@ const DashboardRouter = () => {
         <Route 
           path="purchase-requisitions"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'store_admin', 'fnb_manager', 'owner']}>
+            <ProtectedRoute allowedRoles={['admin', 'fnb_manager', 'owner']}>
               <PurchaseRequisition />
             </ProtectedRoute>
           }

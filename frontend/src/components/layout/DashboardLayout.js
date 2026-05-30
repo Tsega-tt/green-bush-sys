@@ -125,7 +125,7 @@ const DashboardLayout = ({ children }) => {
       // Store Admin items
       { name: 'Store Inventory',      href: '/dashboard/store-inventory',        icon: FiArchive,   roles: ['store_admin', 'fnb_manager', 'admin'] },
       { name: 'Item Requests',        href: '/dashboard/item-requests',          icon: FiSend,      roles: ['store_admin', 'fnb_manager', 'admin', 'item_request'] },
-      { name: 'Purchase Requisitions', href: '/dashboard/purchase-requisitions', icon: FiFileText,  roles: ['store_admin', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Requisitions', href: '/dashboard/purchase-requisitions', icon: FiFileText,  roles: ['fnb_manager', 'owner', 'admin'] },
 
       // PostgreSQL inventory module (Phases 0-7)
       { name: 'Inventory',        href: '/dashboard/inventory-pg',               icon: FiPackage,    roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
