@@ -391,5 +391,85 @@
         "note": "PR created"
       }
     ]
+  },
+  {
+    "id": 12,
+    "req_number": "PR-00012",
+    "zone_id": "dry_storage",
+    "zone_name": "Dry Storage",
+    "item_id": 25,
+    "item_name": "akjsdnckjsd",
+    "item_code": "DRY-001",
+    "supplier": "",
+    "quantity": 5.99,
+    "approved_quantity": 5.99,
+    "unit_cost": 7,
+    "estimated_cost": 41.93,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 40,
+    "created_by_name": "tsegisha",
+    "created_at": "2026-05-30T03:25:08.274Z",
+    "updated_at": "2026-05-30T03:25:26.755Z",
+    "approved_by_id": 23,
+    "approved_by_name": "Inv FnB",
+    "approved_at": "2026-05-30T03:25:26.755Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 40,
+        "actor_name": "tsegisha",
+        "timestamp": "2026-05-30T03:25:08.274Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 23,
+        "actor_name": "Inv FnB",
+        "timestamp": "2026-05-30T03:25:26.755Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "req_number": "PR-00013",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 3,
+    "item_id": null,
+    "item_name": "Premium Tea 500g",
+    "item_code": "",
+    "supplier": "Tea Estates",
+    "quantity": 15,
+    "approved_quantity": null,
+    "unit_cost": 350,
+    "estimated_cost": 5250,
+    "notes": "",
+    "status": "pending_fnb",
+    "created_by_id": 1,
+    "created_by_name": "Store Manager",
+    "created_at": "2026-05-30T03:35:37.583Z",
+    "updated_at": "2026-05-30T03:35:37.583Z",
+    "approved_by_id": null,
+    "approved_by_name": null,
+    "approved_at": null,
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 1,
+        "actor_name": "Store Manager",
+        "timestamp": "2026-05-30T03:35:37.583Z",
+        "note": "PR created"
+      }
+    ]
   }
 ]

@@ -10,12 +10,7 @@ import {
   FiFileText, FiAlertTriangle, FiEdit2
 } from 'react-icons/fi';
 
-const PR_ZONES = [
-  { id: 'dry_storage',  name: 'Dry Storage',  icon: '📦' },
-  { id: 'cold_storage', name: 'Cold Storage',  icon: '❄️' },
-  { id: 'freezer',      name: 'Freezer',       icon: '🧊' },
-  { id: 'beverages',    name: 'Beverages',     icon: '🍹' },
-];
+// No longer using hardcoded zones - will fetch real stores from inventory
 
 const STATUS_META = {
   pending_fnb:        { label: 'Pending F&B Review',         color: 'bg-yellow-900 text-yellow-300 border border-yellow-700' },
@@ -39,26 +34,33 @@ export default function PurchaseRequisition() {
   const isOwner      = role === 'owner';
 
   const [requisitions, setRequisitions] = useState([]);
+  const [stores, setStores]             = useState([]);
   const [loading, setLoading]           = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterZone, setFilterZone]     = useState('all');
+  const [filterStore, setFilterStore]   = useState('all');
   const [expandedId, setExpandedId]     = useState(null);
   const [showCreate, setShowCreate]     = useState(false);
   const [actionModal, setActionModal]   = useState(null);
   const pollRef = useRef(null);
+
+  useEffect(() => {
+    inventoryApi.stores.list()
+      .then((r) => setStores((r.data.data.stores || []).filter(s => s.is_active !== false)))
+      .catch(() => {});
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
       if (filterStatus !== 'all') params.status = filterStatus;
-      if (filterZone   !== 'all') params.zone_id = filterZone;
+      if (filterStore   !== 'all') params.store_id = filterStore;
       const res = await api.purchaseRequisitions.getAll(params);
       const data = res?.data?.data?.requisitions ?? res?.data?.requisitions ?? [];
       setRequisitions(Array.isArray(data) ? data : []);
     } catch { toast.error('Failed to load requisitions'); }
     finally  { setLoading(false); }
-  }, [filterStatus, filterZone]);
+  }, [filterStatus, filterStore]);
 
   useEffect(() => {
     fetchAll();
@@ -131,10 +133,10 @@ export default function PurchaseRequisition() {
           <option value="adjusted_approved">Adjusted & Approved</option>
           <option value="rejected">Rejected</option>
         </select>
-        <select value={filterZone} onChange={e => setFilterZone(e.target.value)}
+        <select value={filterStore} onChange={e => setFilterStore(e.target.value)}
           className="bg-gray-800 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
-          <option value="all">All Zones</option>
-          {PR_ZONES.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
+          <option value="all">All Stores</option>
+          {stores.map(s => <option key={s.id} value={s.id}>{s.icon ? `${s.icon} ` : ''}{s.name}</option>)}
         </select>
         <span className="text-xs text-gray-500 ml-auto">{requisitions.length} record{requisitions.length !== 1 ? 's' : ''}</span>
       </div>
@@ -155,6 +157,7 @@ export default function PurchaseRequisition() {
             <PRCard
               key={pr.id}
               pr={pr}
+              stores={stores}
               expanded={expandedId === pr.id}
               onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
               isStoreAdmin={isStoreAdmin}
@@ -189,9 +192,10 @@ export default function PurchaseRequisition() {
   );
 }
 
-function PRCard({ pr, expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction }) {
+function PRCard({ pr, stores = [], expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction }) {
   const canApprove = isFnb && pr.status === 'pending_fnb';
   const canReject  = isFnb && pr.status === 'pending_fnb';
+  const store = stores.find(s => String(s.id) === String(pr.store_id));
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -202,7 +206,7 @@ function PRCard({ pr, expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction
         <div className="flex items-center gap-3 flex-wrap min-w-0">
           <span className="font-mono text-xs text-amber-600 flex-shrink-0">{pr.req_number}</span>
           <span className="text-sm font-semibold text-gray-100 truncate">{pr.item_name}</span>
-          <span className="text-xs text-gray-500 flex-shrink-0">{PR_ZONES.find(z=>z.id===pr.zone_id)?.icon} {pr.zone_name}</span>
+          <span className="text-xs text-gray-500 flex-shrink-0">{store?.icon || '🏪'} {store?.name || pr.store_name || 'Unknown Store'}</span>
           <StatusBadge status={pr.status} />
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 ml-3">
@@ -217,11 +221,11 @@ function PRCard({ pr, expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction
           {/* Details grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             {[
-              { label: 'Zone',       value: `${PR_ZONES.find(z=>z.id===pr.zone_id)?.icon} ${pr.zone_name}` },
+              { label: 'Store',      value: `${store?.icon || '🏪'} ${store?.name || pr.store_name || 'Unknown'}` },
               { label: 'Item Code',  value: pr.item_code || '—' },
               { label: 'Supplier',   value: pr.supplier || '—' },
               { label: 'Created By', value: pr.created_by_name || '—' },
-              { label: 'Qty Requested', value: `${pr.quantity} ${pr.unit_cost ? '' : ''}` },
+              { label: 'Qty Requested', value: `${pr.quantity}` },
               { label: 'Unit Cost',  value: `ETB ${fmt(pr.unit_cost)}` },
               { label: 'Est. Cost',  value: `ETB ${fmt(pr.estimated_cost)}` },
               { label: 'Approved Qty', value: pr.approved_quantity != null ? pr.approved_quantity : '—' },
@@ -315,9 +319,11 @@ function PRCard({ pr, expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction
 
 function CreatePRModal({ user, onClose, onCreated }) {
   const [masterItems, setMasterItems] = useState([]);
+  const [storesList, setStoresList] = useState([]);
+  const [purchasers, setPurchasers] = useState([]);
   const [uoms, setUoms] = useState([]);
   const [form, setForm] = useState({
-    zone_id: '', item_id: '', item_mode: 'existing', item_name: '', item_code: '', supplier: '',
+    store_id: '', purchaser_id: '', item_id: '', item_mode: 'existing', item_name: '', item_code: '', supplier: '',
     quantity: '', unit_cost: '', category: '', sub_category: '', item_type: '', uom: 'pcs',
     uom_attributes: {}, specifications: '', storage_requirements: '', is_perishable: false,
     track_batches: false, notes: '',
@@ -326,7 +332,10 @@ function CreatePRModal({ user, onClose, onCreated }) {
 
   useEffect(() => {
     inventoryApi.items.list({ limit: 1000 }).then((r) => setMasterItems(r.data.data.items || [])).catch(() => {});
+    inventoryApi.stores.list().then((r) => setStoresList((r.data.data.stores || []).filter(s => s.is_active !== false))).catch(() => {});
     inventoryApi.uoms.list().then((r) => setUoms(r.data.data.uoms || [])).catch(() => {});
+    // Fetch purchasers (users with purchasing role)
+    api.users.getAll({ role: 'purchasing' }).then((r) => setPurchasers(r.data.users || r.data.data.users || [])).catch(() => {});
   }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -361,13 +370,14 @@ function CreatePRModal({ user, onClose, onCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.zone_id || !form.item_name.trim() || !form.quantity || !form.unit_cost) {
-      toast.error('Zone, item, quantity and unit cost are required'); return;
+    if (!form.store_id || !form.item_name.trim() || !form.quantity || !form.unit_cost) {
+      toast.error('Store, item, quantity and unit cost are required'); return;
     }
     setSaving(true);
     try {
       await api.purchaseRequisitions.create({
-        zone_id: form.zone_id,
+        store_id: form.store_id,
+        purchaser_id: form.purchaser_id || undefined,
         item_id: form.item_mode === 'existing' ? form.item_id : undefined,
         is_new_item: form.item_mode === 'new',
         item_name: form.item_name,
@@ -388,7 +398,7 @@ function CreatePRModal({ user, onClose, onCreated }) {
         created_by_id:   user?.id,
         created_by_name: user?.full_name || user?.name || user?.username,
       });
-      toast.success('Requisition submitted');
+      toast.success('Requisition submitted to purchaser');
       onCreated();
     } catch { toast.error('Failed to submit'); }
     finally { setSaving(false); }
@@ -404,13 +414,23 @@ function CreatePRModal({ user, onClose, onCreated }) {
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-5 space-y-4 overflow-y-auto flex-1">
 
-            {/* Zone */}
+            {/* Store */}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">Storage Zone *</label>
-              <select required value={form.zone_id} onChange={e => set('zone_id', e.target.value)}
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Destination Store *</label>
+              <select required value={form.store_id} onChange={e => set('store_id', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
-                <option value="">Select zone…</option>
-                {PR_ZONES.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
+                <option value="">Select store…</option>
+                {storesList.map(s => <option key={s.id} value={s.id}>{s.icon ? `${s.icon} ` : ''}{s.name}</option>)}
+              </select>
+            </div>
+
+            {/* Purchaser */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Assign to Purchaser</label>
+              <select value={form.purchaser_id} onChange={e => set('purchaser_id', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="">Auto-assign…</option>
+                {purchasers.map(p => <option key={p.id} value={p.id}>{p.full_name || p.username}</option>)}
               </select>
             </div>
 
@@ -611,7 +631,7 @@ function ActionModal({ pr, type, user, onClose, onDone }) {
             <div className="bg-gray-800 rounded-lg p-3 text-sm space-y-1">
               <p className="text-amber-400 font-mono">{pr.req_number}</p>
               <p className="text-gray-100 font-semibold">{pr.item_name}</p>
-              <p className="text-gray-400">{PR_ZONES.find(z=>z.id===pr.zone_id)?.icon} {pr.zone_name} · Qty: {pr.quantity} · ETB {fmt(pr.estimated_cost)}</p>
+              <p className="text-gray-400">🏪 {pr.store_name || 'Unknown'} · Qty: {pr.quantity} · ETB {fmt(pr.estimated_cost)}</p>
             </div>
 
             {type === 'adjust' && (

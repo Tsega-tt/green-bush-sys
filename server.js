@@ -268,9 +268,16 @@ if (performanceRoutes) {
 // Inventory domain (Phase 0/1). No-op unless INVENTORY_BACKEND=pg and DB is
 // configured, so the legacy JSON inventory paths below remain the default.
 let invDomain = null;
+let getPool = null;
 try {
   invDomain = require('./inventory');
   invDomain.mountInventory(app);
+  // Import getPool for PR store lookups
+  try {
+    getPool = require('./inventory/db/pool').getPool;
+  } catch (e) {
+    // getPool not available - PR store validation will be skipped
+  }
 } catch (e) {
   console.warn('⚠️  Inventory module not mounted:', e.message);
 }
@@ -7023,93 +7030,129 @@ function savePRToDisk() {
 }
 loadPRFromDisk();
 
-// GET /api/purchase-requisitions/zones
+// GET /api/purchase-requisitions/zones (deprecated - kept for compatibility)
 app.get('/api/purchase-requisitions/zones', (req, res) => {
-  res.json({ status: 'success', data: { zones: PR_ZONES }, zones: PR_ZONES });
+  res.json({ status: 'success', data: { zones: [] }, zones: [] });
 });
 
-// GET /api/purchase-requisitions/summary  (owner overview + per-zone totals)
-app.get('/api/purchase-requisitions/summary', (req, res) => {
-  const summary = PR_ZONES.map(zone => {
-    const zr   = MOCK_PURCHASE_REQUISITIONS.filter(r => r.zone_id === zone.id);
-    const appr = zr.filter(r => ['approved', 'adjusted_approved'].includes(r.status));
-    const totalCost = appr.reduce((s, r) => s + ((r.approved_quantity != null ? r.approved_quantity : r.quantity) * r.unit_cost), 0);
-    return { ...zone, total: zr.length, approved: appr.length, pending: zr.filter(r => r.status === 'pending_fnb').length, totalCost };
-  });
-  const all = [...MOCK_PURCHASE_REQUISITIONS].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json({ status: 'success', data: { summary, requisitions: all }, summary, requisitions: all });
+// GET /api/purchase-requisitions/summary  (owner overview + per-store totals)
+app.get('/api/purchase-requisitions/summary', async (req, res) => {
+  try {
+    let stores = [];
+
+    // Try to load stores from database if pool is available
+    if (getPool) {
+      try {
+        const poolConn = await getPool();
+        const { rows } = await poolConn.query('SELECT id, icon, name FROM stores WHERE is_active=true ORDER BY name');
+        stores = rows;
+      } catch (dbErr) {
+        console.warn('Store list query failed:', dbErr.message);
+      }
+    }
+
+    const summary = stores.map(store => {
+      const sr   = MOCK_PURCHASE_REQUISITIONS.filter(r => String(r.store_id) === String(store.id));
+      const appr = sr.filter(r => ['approved', 'adjusted_approved'].includes(r.status));
+      const totalCost = appr.reduce((s, r) => s + ((r.approved_quantity != null ? r.approved_quantity : r.quantity) * r.unit_cost), 0);
+      return { id: store.id, icon: store.icon, name: store.name, total: sr.length, approved: appr.length, pending: sr.filter(r => r.status === 'pending_fnb').length, totalCost };
+    });
+    const all = [...MOCK_PURCHASE_REQUISITIONS].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    res.json({ status: 'success', data: { summary, requisitions: all }, summary, requisitions: all });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
 });
 
 // GET /api/purchase-requisitions
 app.get('/api/purchase-requisitions', (req, res) => {
-  const { status, zone_id } = req.query;
+  const { status, store_id } = req.query;
   let data = [...MOCK_PURCHASE_REQUISITIONS];
-  if (status)  data = data.filter(r => r.status === status);
-  if (zone_id) data = data.filter(r => r.zone_id === zone_id);
+  if (status)   data = data.filter(r => r.status === status);
+  if (store_id) data = data.filter(r => String(r.store_id) === String(store_id));
   data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   res.json({ status: 'success', data: { requisitions: data }, requisitions: data });
 });
 
 // POST /api/purchase-requisitions
-app.post('/api/purchase-requisitions', (req, res) => {
+app.post('/api/purchase-requisitions', async (req, res) => {
   const {
-    zone_id, item_id, is_new_item, item_name, item_code, supplier, quantity, unit_cost, notes,
+    store_id, purchaser_id, item_id, is_new_item, item_name, item_code, supplier, quantity, unit_cost, notes,
     category, sub_category, item_type, uom, uom_attributes, specifications, storage_requirements,
     is_perishable, track_batches, created_by_id, created_by_name
   } = req.body || {};
 
-  if (!zone_id || !String(item_name || '').trim() || !quantity || unit_cost == null) {
-    return res.status(400).json({ status: 'error', message: 'zone_id, item, quantity and unit_cost are required' });
+  if (!store_id || !String(item_name || '').trim() || !quantity || unit_cost == null) {
+    return res.status(400).json({ status: 'error', message: 'store_id, item, quantity and unit_cost are required' });
   }
-  const zone = PR_ZONES.find(z => z.id === zone_id);
-  if (!zone) return res.status(404).json({ status: 'error', message: 'Zone not found' });
 
-  let finalItemId = item_id ? parseInt(item_id, 10) : null;
+  try {
+    let store = { id: parseInt(store_id, 10), name: 'Store ' + store_id };
 
-  // If new item, create it in MOCK_INVENTORY_ITEMS
-  if (is_new_item && !finalItemId) {
-    const newItemId = (MOCK_INVENTORY_ITEMS.reduce((m, i) => Math.max(m, i.id), 0) || 0) + 1;
-    const newItem = {
-      id: newItemId,
-      item_code: item_code || `AUTO-${newItemId}`,
-      description: String(item_name).trim(),
-      category: category || null,
-      sub_category: sub_category || null,
-      item_type: item_type || null,
-      uom: uom || 'pcs',
-      uom_attributes: uom_attributes || {},
-      is_perishable: !!is_perishable,
-      track_batches: !!track_batches,
-      specifications: specifications || null,
-      storage_requirements: storage_requirements || null,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    // Try to validate store from database if pool is available
+    if (getPool) {
+      try {
+        const poolConn = await getPool();
+        const { rows: stores } = await poolConn.query('SELECT id, icon, name FROM stores WHERE id=$1 AND is_active=true', [parseInt(store_id, 10)]);
+        if (stores.length) {
+          store = stores[0];
+        }
+      } catch (dbErr) {
+        // Continue with default store name if DB validation fails
+        console.warn('Store validation query failed:', dbErr.message);
+      }
+    }
+
+    let finalItemId = item_id ? parseInt(item_id, 10) : null;
+
+    // If new item, create it in MOCK_INVENTORY_ITEMS
+    if (is_new_item && !finalItemId) {
+      const newItemId = (MOCK_INVENTORY_ITEMS.reduce((m, i) => Math.max(m, i.id), 0) || 0) + 1;
+      const newItem = {
+        id: newItemId,
+        item_code: item_code || `AUTO-${newItemId}`,
+        description: String(item_name).trim(),
+        category: category || null,
+        sub_category: sub_category || null,
+        item_type: item_type || null,
+        uom: uom || 'pcs',
+        uom_attributes: uom_attributes || {},
+        is_perishable: !!is_perishable,
+        track_batches: !!track_batches,
+        specifications: specifications || null,
+        storage_requirements: storage_requirements || null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      MOCK_INVENTORY_ITEMS.push(newItem);
+      finalItemId = newItemId;
+    }
+
+    const id  = (MOCK_PURCHASE_REQUISITIONS.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
+    const qty  = parseFloat(quantity);
+    const cost = parseFloat(unit_cost);
+    const now  = new Date().toISOString();
+    const pr = {
+      id, req_number: `PR-${String(id).padStart(5, '0')}`,
+      store_id: parseInt(store_id, 10), store_name: store.name,
+      purchaser_id: purchaser_id ? parseInt(purchaser_id, 10) : null,
+      item_id: finalItemId,
+      item_name: String(item_name).trim(), item_code: item_code || '', supplier: supplier || '',
+      quantity: qty, approved_quantity: null, unit_cost: cost, estimated_cost: qty * cost,
+      notes: notes || '', status: 'pending_fnb',
+      created_by_id, created_by_name: created_by_name || '',
+      created_at: now, updated_at: now,
+      approved_by_id: null, approved_by_name: null, approved_at: null,
+      rejected_by_id: null, rejected_by_name: null, rejected_at: null, rejection_note: null,
+      audit_log: [{ action: 'created', actor_id: created_by_id, actor_name: created_by_name || 'Unknown', timestamp: now, note: 'PR created' }],
     };
-    MOCK_INVENTORY_ITEMS.push(newItem);
-    finalItemId = newItemId;
+    MOCK_PURCHASE_REQUISITIONS.push(pr);
+    savePRToDisk();
+    res.status(201).json({ status: 'success', data: { requisition: pr }, requisition: pr });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
   }
-
-  const id  = (MOCK_PURCHASE_REQUISITIONS.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
-  const qty  = parseFloat(quantity);
-  const cost = parseFloat(unit_cost);
-  const now  = new Date().toISOString();
-  const pr = {
-    id, req_number: `PR-${String(id).padStart(5, '0')}`,
-    zone_id, zone_name: zone.name,
-    item_id: finalItemId,
-    item_name: String(item_name).trim(), item_code: item_code || '', supplier: supplier || '',
-    quantity: qty, approved_quantity: null, unit_cost: cost, estimated_cost: qty * cost,
-    notes: notes || '', status: 'pending_fnb',
-    created_by_id, created_by_name: created_by_name || '',
-    created_at: now, updated_at: now,
-    approved_by_id: null, approved_by_name: null, approved_at: null,
-    rejected_by_id: null, rejected_by_name: null, rejected_at: null, rejection_note: null,
-    audit_log: [{ action: 'created', actor_id: created_by_id, actor_name: created_by_name || 'Unknown', timestamp: now, note: 'PR created' }],
-  };
-  MOCK_PURCHASE_REQUISITIONS.push(pr);
-  savePRToDisk();
-  res.status(201).json({ status: 'success', data: { requisition: pr }, requisition: pr });
 });
 
 // PATCH /api/purchase-requisitions/:id/approve
