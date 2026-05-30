@@ -7066,8 +7066,14 @@ app.get('/api/purchase-requisitions/summary', async (req, res) => {
 
 // GET /api/purchase-requisitions
 app.get('/api/purchase-requisitions', (req, res) => {
-  const { status, store_id } = req.query;
+  const { status, store_id, user_id, user_role } = req.query;
   let data = [...MOCK_PURCHASE_REQUISITIONS];
+
+  // If user is a purchaser, show only PRs assigned to them
+  if (user_role === 'purchaser' && user_id) {
+    data = data.filter(r => !r.purchaser_id || String(r.purchaser_id) === String(user_id));
+  }
+
   if (status)   data = data.filter(r => r.status === status);
   if (store_id) data = data.filter(r => String(r.store_id) === String(store_id));
   data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

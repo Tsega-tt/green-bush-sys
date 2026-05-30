@@ -55,12 +55,15 @@ export default function PurchaseRequisition() {
       const params = {};
       if (filterStatus !== 'all') params.status = filterStatus;
       if (filterStore   !== 'all') params.store_id = filterStore;
+      // Pass user info for role-scoped filtering
+      if (user?.id) params.user_id = user.id;
+      if (user?.role) params.user_role = user.role;
       const res = await api.purchaseRequisitions.getAll(params);
       const data = res?.data?.data?.requisitions ?? res?.data?.requisitions ?? [];
       setRequisitions(Array.isArray(data) ? data : []);
     } catch { toast.error('Failed to load requisitions'); }
     finally  { setLoading(false); }
-  }, [filterStatus, filterStore]);
+  }, [filterStatus, filterStore, user]);
 
   useEffect(() => {
     fetchAll();

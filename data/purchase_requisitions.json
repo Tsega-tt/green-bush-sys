@@ -471,5 +471,79 @@
         "note": "PR created"
       }
     ]
+  },
+  {
+    "id": 14,
+    "req_number": "PR-00014",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 25,
+    "item_id": 1,
+    "item_name": "flour",
+    "item_code": "LEG-00001",
+    "supplier": "",
+    "quantity": 7,
+    "approved_quantity": null,
+    "unit_cost": 4,
+    "estimated_cost": 28,
+    "notes": "",
+    "status": "pending_fnb",
+    "created_by_id": 40,
+    "created_by_name": "tsegisha",
+    "created_at": "2026-05-30T03:38:42.224Z",
+    "updated_at": "2026-05-30T03:38:42.224Z",
+    "approved_by_id": null,
+    "approved_by_name": null,
+    "approved_at": null,
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 40,
+        "actor_name": "tsegisha",
+        "timestamp": "2026-05-30T03:38:42.224Z",
+        "note": "PR created"
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "req_number": "PR-00015",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 3,
+    "item_id": null,
+    "item_name": "Fresh Vegetables Mix",
+    "item_code": "",
+    "supplier": "Green Market",
+    "quantity": 25,
+    "approved_quantity": null,
+    "unit_cost": 200,
+    "estimated_cost": 5000,
+    "notes": "",
+    "status": "pending_fnb",
+    "created_by_id": 1,
+    "created_by_name": "Store Manager",
+    "created_at": "2026-05-30T03:41:06.879Z",
+    "updated_at": "2026-05-30T03:41:06.879Z",
+    "approved_by_id": null,
+    "approved_by_name": null,
+    "approved_at": null,
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 1,
+        "actor_name": "Store Manager",
+        "timestamp": "2026-05-30T03:41:06.879Z",
+        "note": "PR created"
+      }
+    ]
   }
 ]
