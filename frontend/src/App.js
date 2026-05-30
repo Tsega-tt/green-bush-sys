@@ -287,7 +287,7 @@ const DashboardRouter = () => {
         <Route
           path="inventory-pg/purchase-requests"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_manager', 'purchaser']}>
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
               <PurchaseRequests />
             </ProtectedRoute>
           }

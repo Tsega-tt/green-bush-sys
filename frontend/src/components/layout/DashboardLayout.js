@@ -131,7 +131,7 @@ const DashboardLayout = ({ children }) => {
       { name: 'Inventory',        href: '/dashboard/inventory-pg',               icon: FiPackage,    roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Transfers',        href: '/dashboard/inventory-pg/transfers',     icon: FiSend,       roles: ['store_admin', 'store_manager', 'owner', 'admin'] },
       { name: 'Purchasing',       href: '/dashboard/inventory-pg/purchasing',    icon: FiShoppingBag, roles: ['owner', 'admin'] },
-      { name: 'Purchase Requests', href: '/dashboard/inventory-pg/purchase-requests', icon: FiFileText, roles: ['store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Purchase Requests', href: '/dashboard/inventory-pg/purchase-requests', icon: FiFileText, roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Approvals',        href: '/dashboard/inventory-pg/approvals',     icon: FiClipboard,  roles: ['fnb_manager', 'owner', 'admin'] },
       { name: 'Purchase Orders',  href: '/dashboard/inventory-pg/purchase-orders', icon: FiClipboard, roles: ['owner', 'admin'] },
       { name: 'Receive Goods',    href: '/dashboard/inventory-pg/goods-receipts', icon: FiTruck,     roles: ['store_manager', 'owner', 'admin'] },
