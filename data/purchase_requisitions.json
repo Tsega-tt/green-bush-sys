@@ -545,5 +545,174 @@
         "note": "PR created"
       }
     ]
+  },
+  {
+    "id": 16,
+    "req_number": "PR-00016",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 3,
+    "item_id": null,
+    "item_name": "Test Item for Purchaser",
+    "item_code": "",
+    "supplier": "Test Supplier",
+    "quantity": 10,
+    "approved_quantity": null,
+    "unit_cost": 300,
+    "estimated_cost": 3000,
+    "notes": "",
+    "status": "pending_fnb",
+    "created_by_id": 1,
+    "created_by_name": "Tester",
+    "created_at": "2026-05-30T03:41:43.561Z",
+    "updated_at": "2026-05-30T03:41:43.561Z",
+    "approved_by_id": null,
+    "approved_by_name": null,
+    "approved_at": null,
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 1,
+        "actor_name": "Tester",
+        "timestamp": "2026-05-30T03:41:43.561Z",
+        "note": "PR created"
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "req_number": "PR-00017",
+    "store_id": 9,
+    "store_name": "Draft Heineken Store",
+    "purchaser_id": 40,
+    "item_id": 25,
+    "item_name": "akjsdnckjsd",
+    "item_code": "DRY-001",
+    "supplier": "",
+    "quantity": 7,
+    "approved_quantity": 7,
+    "unit_cost": 77.99,
+    "estimated_cost": 545.93,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 40,
+    "created_by_name": "tsegisha",
+    "created_at": "2026-05-30T03:43:30.918Z",
+    "updated_at": "2026-05-30T03:43:49.931Z",
+    "approved_by_id": 23,
+    "approved_by_name": "Inv FnB",
+    "approved_at": "2026-05-30T03:43:49.931Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 40,
+        "actor_name": "tsegisha",
+        "timestamp": "2026-05-30T03:43:30.918Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 23,
+        "actor_name": "Inv FnB",
+        "timestamp": "2026-05-30T03:43:49.931Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "req_number": "PR-00018",
+    "store_id": 4,
+    "store_name": "Bar Store",
+    "purchaser_id": 25,
+    "item_id": 25,
+    "item_name": "akjsdnckjsd",
+    "item_code": "DRY-001",
+    "supplier": "",
+    "quantity": 8,
+    "approved_quantity": 8,
+    "unit_cost": 7,
+    "estimated_cost": 56,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 40,
+    "created_by_name": "tsegisha",
+    "created_at": "2026-05-30T03:44:42.421Z",
+    "updated_at": "2026-05-30T03:44:54.234Z",
+    "approved_by_id": 23,
+    "approved_by_name": "Inv FnB",
+    "approved_at": "2026-05-30T03:44:54.234Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 40,
+        "actor_name": "tsegisha",
+        "timestamp": "2026-05-30T03:44:42.421Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 23,
+        "actor_name": "Inv FnB",
+        "timestamp": "2026-05-30T03:44:54.234Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "req_number": "PR-00019",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 3,
+    "item_id": null,
+    "item_name": "Test Item for Approval",
+    "item_code": "",
+    "supplier": "Test Supplier",
+    "quantity": 20,
+    "approved_quantity": 20,
+    "unit_cost": 250,
+    "estimated_cost": 5000,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 1,
+    "created_by_name": "Tester",
+    "created_at": "2026-05-30T03:46:52.373Z",
+    "updated_at": "2026-05-30T03:46:53.170Z",
+    "approved_by_id": 2,
+    "approved_by_name": "FNB Manager",
+    "approved_at": "2026-05-30T03:46:53.170Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 1,
+        "actor_name": "Tester",
+        "timestamp": "2026-05-30T03:46:52.373Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 2,
+        "actor_name": "FNB Manager",
+        "timestamp": "2026-05-30T03:46:53.170Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
   }
 ]

@@ -126,6 +126,14 @@ export default function PurchaseRequisition() {
         </div>
       )}
 
+      {/* Approved alert for Purchaser */}
+      {role === 'purchaser' && approved > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-green-950 border border-green-700 rounded-xl text-green-300 text-sm">
+          <FiCheckCircle className="w-5 h-5 flex-shrink-0" />
+          <span><span className="font-bold">{approved}</span> requisition{approved > 1 ? 's' : ''} approved and ready for Purchase Orders</span>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
