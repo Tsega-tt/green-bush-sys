@@ -97,6 +97,11 @@ router.put('/stores/:id', requireRoles('manageStores'), asyncHandler(async (req,
   ok(res, { store });
 }));
 
+router.delete('/stores/:id', requireRoles('manageStores'), asyncHandler(async (req, res) => {
+  const store = await masterData.deleteStore(V.toInt(req.params.id, 'id'), ctx(req));
+  ok(res, { store });
+}));
+
 router.get('/stores/:storeId/capabilities', requireRoles('readInventory'), asyncHandler(async (req, res) => {
   ok(res, { capabilities: await masterData.reads.listCapabilities(V.toInt(req.params.storeId, 'storeId')) });
 }));
@@ -154,6 +159,7 @@ router.post('/items', requireRoles('manageItems'), asyncHandler(async (req, res)
     trackBatches: V.optBool(req.body.track_batches, false),
     defaultMinQty: req.body.default_min_qty != null ? V.nonNegNum(req.body.default_min_qty, 'default_min_qty') : 0,
     defaultReorder: req.body.default_reorder != null ? V.nonNegNum(req.body.default_reorder, 'default_reorder') : 0,
+    uomAttributes: req.body.uom_attributes || {},
   }, ctx(req));
   ok(res, { item }, 201);
 }));
@@ -164,8 +170,33 @@ router.put('/items/:id', requireRoles('manageItems'), asyncHandler(async (req, r
     isPerishable: req.body.is_perishable, trackBatches: req.body.track_batches,
     defaultMinQty: req.body.default_min_qty, defaultReorder: req.body.default_reorder,
     isActive: req.body.is_active,
+    uomAttributes: req.body.uom_attributes,
   }, ctx(req));
   ok(res, { item });
+}));
+
+// ---------------- units of measure (data-driven) ----------------
+router.get('/uoms', requireRoles('readInventory'), asyncHandler(async (req, res) => {
+  ok(res, { uoms: await masterData.reads.listUoms({ activeOnly: req.query.all !== 'true' }) });
+}));
+router.post('/uoms', requireRoles('manageItems'), asyncHandler(async (req, res) => {
+  V.requireFields(req.body, ['code', 'name']);
+  const uom = await masterData.createUom({
+    code: req.body.code, name: req.body.name, isBase: !!req.body.is_base,
+    attributes: (req.body.attributes || []).map((a) => ({
+      attrKey: a.attr_key, label: a.label, inputType: a.input_type, unit: a.unit,
+      isRequired: !!a.is_required, helpText: a.help_text, options: a.options, sortOrder: a.sort_order,
+    })),
+  }, ctx(req));
+  ok(res, { uom }, 201);
+}));
+router.post('/uoms/:code/attributes', requireRoles('manageItems'), asyncHandler(async (req, res) => {
+  V.requireFields(req.body, ['attr_key', 'label']);
+  const attr = await masterData.addUomAttribute(req.params.code, {
+    attrKey: req.body.attr_key, label: req.body.label, inputType: req.body.input_type, unit: req.body.unit,
+    isRequired: !!req.body.is_required, helpText: req.body.help_text, options: req.body.options, sortOrder: req.body.sort_order,
+  }, ctx(req));
+  ok(res, { attribute: attr }, 201);
 }));
 
 router.delete('/items/:id', requireRoles('manageStores'), asyncHandler(async (req, res) => {

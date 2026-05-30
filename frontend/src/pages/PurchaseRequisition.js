@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../services/api';
+import inventoryApi from '../services/inventoryApi';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import UomFields from '../components/inventory/UomFields';
 import {
   FiPlus, FiRefreshCw, FiX, FiCheck, FiCheckCircle,
   FiXCircle, FiClock, FiChevronDown, FiChevronUp,
@@ -312,12 +314,47 @@ function PRCard({ pr, expanded, onToggle, isStoreAdmin, isFnb, isOwner, onAction
 }
 
 function CreatePRModal({ user, onClose, onCreated }) {
+  const [masterItems, setMasterItems] = useState([]);
+  const [uoms, setUoms] = useState([]);
   const [form, setForm] = useState({
-    zone_id: '', item_name: '', item_code: '', supplier: '', quantity: '', unit_cost: '', notes: '',
+    zone_id: '', item_id: '', item_mode: 'existing', item_name: '', item_code: '', supplier: '',
+    quantity: '', unit_cost: '', category: '', sub_category: '', item_type: '', uom: 'pcs',
+    uom_attributes: {}, specifications: '', storage_requirements: '', is_perishable: false,
+    track_batches: false, notes: '',
   });
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    inventoryApi.items.list({ limit: 1000 }).then((r) => setMasterItems(r.data.data.items || [])).catch(() => {});
+    inventoryApi.uoms.list().then((r) => setUoms(r.data.data.uoms || [])).catch(() => {});
+  }, []);
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const pickItem = (val) => {
+    if (val === '__new__') {
+      set('item_mode', 'new');
+      set('item_id', '');
+      set('item_name', '');
+      return;
+    }
+    if (val === '') {
+      set('item_mode', 'existing');
+      set('item_id', '');
+      set('item_name', '');
+      return;
+    }
+    const m = masterItems.find((x) => String(x.id) === String(val));
+    set('item_mode', 'existing');
+    set('item_id', val);
+    set('item_name', m?.description || '');
+    set('item_code', m?.item_code || '');
+    set('category', m?.category || '');
+    set('uom', m?.uom || 'pcs');
+    set('uom_attributes', m?.uom_attributes || {});
+    set('is_perishable', !!m?.is_perishable);
+    set('track_batches', !!m?.track_batches);
+  };
+
   const qty    = parseFloat(form.quantity)   || 0;
   const cost   = parseFloat(form.unit_cost)  || 0;
   const estCost = qty * cost;
@@ -325,14 +362,29 @@ function CreatePRModal({ user, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.zone_id || !form.item_name.trim() || !form.quantity || !form.unit_cost) {
-      toast.error('Zone, item name, quantity and unit cost are required'); return;
+      toast.error('Zone, item, quantity and unit cost are required'); return;
     }
     setSaving(true);
     try {
       await api.purchaseRequisitions.create({
-        ...form,
+        zone_id: form.zone_id,
+        item_id: form.item_mode === 'existing' ? form.item_id : undefined,
+        is_new_item: form.item_mode === 'new',
+        item_name: form.item_name,
+        item_code: form.item_code,
+        category: form.category || undefined,
+        sub_category: form.sub_category || undefined,
+        item_type: form.item_type || undefined,
+        uom: form.uom,
+        uom_attributes: form.uom_attributes,
+        is_perishable: form.is_perishable,
+        track_batches: form.track_batches,
+        specifications: form.specifications || undefined,
+        storage_requirements: form.storage_requirements || undefined,
+        supplier: form.supplier,
         quantity:   qty,
         unit_cost:  cost,
+        notes: form.notes,
         created_by_id:   user?.id,
         created_by_name: user?.full_name || user?.name || user?.username,
       });
@@ -362,21 +414,103 @@ function CreatePRModal({ user, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* Item name + code */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Item Name *</label>
-                <input required value={form.item_name} onChange={e => set('item_name', e.target.value)}
-                  placeholder="e.g. Flour 50kg"
-                  className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Item Code</label>
-                <input value={form.item_code} onChange={e => set('item_code', e.target.value)}
-                  placeholder="optional"
-                  className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
-              </div>
+            {/* Item selection: existing or new */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Inventory Item *</label>
+              <select required value={form.item_mode === 'new' ? '__new__' : form.item_id}
+                onChange={e => pickItem(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="">Select item…</option>
+                <option value="__new__">➕ New item…</option>
+                {masterItems.map(m => <option key={m.id} value={m.id}>{m.description} ({m.uom})</option>)}
+              </select>
             </div>
+
+            {/* New item form */}
+            {form.item_mode === 'new' && (
+              <div className="bg-amber-900/30 border border-amber-700 rounded-lg p-4 space-y-3">
+                <div className="text-xs font-semibold text-amber-400">New item details (added to inventory master)</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Description *</label>
+                    <input required value={form.item_name} onChange={e => set('item_name', e.target.value)}
+                      placeholder="e.g. Flour 50kg"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Item Code</label>
+                    <input value={form.item_code} onChange={e => set('item_code', e.target.value)}
+                      placeholder="auto if blank"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Category</label>
+                    <input value={form.category} onChange={e => set('category', e.target.value)}
+                      placeholder="e.g. Grains"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Sub-category</label>
+                    <input value={form.sub_category} onChange={e => set('sub_category', e.target.value)}
+                      placeholder="e.g. Wheat"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Unit of Measure *</label>
+                    <select required value={form.uom} onChange={e => set('uom', e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                      {uoms.map(u => <option key={u.code} value={u.code}>{u.name} ({u.code})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Item Type</label>
+                    <input value={form.item_type} onChange={e => set('item_type', e.target.value)}
+                      placeholder="e.g. Bulk"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                </div>
+                <div className="bg-amber-800/40 rounded-lg p-3">
+                  <div className="text-xs font-semibold text-gray-400 mb-2">📐 {uoms.find(u => u.code === form.uom)?.name || form.uom} details</div>
+                  <UomFields uom={form.uom} value={form.uom_attributes} uoms={uoms} onChange={(next) => set('uom_attributes', next)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Specifications</label>
+                    <input value={form.specifications} onChange={e => set('specifications', e.target.value)}
+                      placeholder="e.g. Organic, gluten-free"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1">Storage Requirements</label>
+                    <input value={form.storage_requirements} onChange={e => set('storage_requirements', e.target.value)}
+                      placeholder="e.g. Cool & dry"
+                      className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <label className="flex items-center gap-2 text-gray-300">
+                    <input type="checkbox" checked={form.is_perishable} onChange={e => set('is_perishable', e.target.checked)} className="w-4 h-4" />
+                    Perishable
+                  </label>
+                  <label className="flex items-center gap-2 text-gray-300">
+                    <input type="checkbox" checked={form.track_batches} onChange={e => set('track_batches', e.target.checked)} className="w-4 h-4" />
+                    Track batches
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Existing item: show loaded info */}
+            {form.item_mode === 'existing' && form.item_id && (
+              <div className="bg-gray-800 rounded-lg p-3 text-xs text-gray-400">
+                Loaded: <b className="text-gray-200">{form.item_name}</b> · {form.uom} · {form.category || 'no category'}
+                {form.uom_attributes && Object.keys(form.uom_attributes).length ? ` · ${Object.entries(form.uom_attributes).map(([k, v]) => `${k}:${v}`).join(', ')}` : ''}
+              </div>
+            )}
 
             {/* Supplier */}
             <div>

@@ -6,9 +6,9 @@ import {
   FiPlus, FiEdit3, FiTrash2, FiRefreshCw, FiPackage,
   FiAlertCircle, FiSearch, FiX, FiSave, FiMinus, FiPlusCircle
 } from 'react-icons/fi';
+import UomFields from '../components/inventory/UomFields';
 
-const UOM_OPTIONS = ['pcs', 'kg', 'g', 'l', 'ml', 'boxes', 'bottles', 'bags', 'cans', 'packs', 'rolls', 'sheets'];
-const EMPTY_FORM = { item_number: '', description: '', uom: 'pcs', quantity: '', min_quantity: '' };
+const EMPTY_FORM = { item_number: '', description: '', uom: 'pcs', quantity: '', min_quantity: '', uom_attributes: {} };
 // Soft colour palette cycled across however many stores exist.
 const PALETTE = [
   'bg-yellow-50 border-yellow-300 text-yellow-800',
@@ -36,21 +36,66 @@ export default function StoreInventory() {
   const [qtyTarget, setQtyTarget]       = useState(null);
   const [qtyMode, setQtyMode]           = useState('add');
   const [qtyValue, setQtyValue]         = useState('');
+  const [storeEdit, setStoreEdit]       = useState(null); // store being edited (admin)
+  const [storeSaving, setStoreSaving]   = useState(false);
+  const [uoms, setUoms]                 = useState([]); // data-driven UOM list + schema
+
+  useEffect(() => {
+    inventoryApi.uoms.list().then((r) => setUoms(r.data.data.uoms || [])).catch(() => {});
+  }, []);
 
   const canEdit = ['admin', 'store_admin', 'store_manager', 'fnb_manager'].includes(user?.role);
+  const isAdmin = user?.role === 'admin'; // store edit/delete is admin-only (backend: manageStores)
 
   // Load the real PostgreSQL stores (same source as the inventory module).
-  useEffect(() => {
-    inventoryApi.stores.list()
+  const loadStores = useCallback(() => {
+    return inventoryApi.stores.list()
       .then((r) => {
         const list = (r.data.data.stores || []).filter((s) => s.is_active !== false);
         setStores(list);
-        // Default to the user's pinned store if they have one, else the first.
-        const pinned = user?.store_id ? list.find((s) => Number(s.id) === Number(user.store_id)) : null;
-        setActiveStore((prev) => prev ?? (pinned ? pinned.id : (list[0]?.id ?? null)));
+        setActiveStore((prev) => {
+          if (prev && list.some((s) => Number(s.id) === Number(prev))) return prev;
+          const pinned = user?.store_id ? list.find((s) => Number(s.id) === Number(user.store_id)) : null;
+          return pinned ? pinned.id : (list[0]?.id ?? null);
+        });
+        return list;
       })
       .catch(() => toast.error('Failed to load stores'));
   }, [user]);
+
+  useEffect(() => { loadStores(); }, [loadStores]);
+
+  const openStoreEdit = (s) => setStoreEdit({ id: s.id, name: s.name, icon: s.icon || '', description: s.description || '', is_active: s.is_active !== false });
+
+  const saveStore = async (e) => {
+    e.preventDefault();
+    if (!storeEdit.name.trim()) { toast.error('Store name is required'); return; }
+    setStoreSaving(true);
+    try {
+      await inventoryApi.stores.update(storeEdit.id, {
+        name: storeEdit.name, icon: storeEdit.icon, description: storeEdit.description, is_active: storeEdit.is_active,
+      });
+      toast.success('Store updated');
+      setStoreEdit(null);
+      await loadStores();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update store');
+    } finally {
+      setStoreSaving(false);
+    }
+  };
+
+  const deleteStore = async (s) => {
+    if (!window.confirm(`Permanently delete "${s.name}"? This cannot be undone. (Only empty stores with no inventory history can be deleted.)`)) return;
+    try {
+      await inventoryApi.stores.remove(s.id);
+      toast.success('Store deleted');
+      if (Number(activeStore) === Number(s.id)) setActiveStore(null);
+      await loadStores();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete store');
+    }
+  };
 
   const fetchItems = useCallback(async () => {
     if (!activeStore) return;
@@ -77,6 +122,7 @@ export default function StoreInventory() {
       uom: item.uom || 'pcs',
       quantity: Number(item.quantity) || 0,
       min_quantity: Number(item.min_quantity) || 0,
+      uom_attributes: item.uom_attributes || {},
     });
     setShowModal(true);
   };
@@ -93,6 +139,7 @@ export default function StoreInventory() {
         await inventoryApi.items.update(editItem.item_id, {
           description: form.description, uom: form.uom,
           default_min_qty: minQ, default_reorder: minQ,
+          uom_attributes: form.uom_attributes || {},
         });
         // Honour an edited quantity by posting an adjustment to this store.
         if (Number(qty) !== Number(editItem.quantity)) {
@@ -104,6 +151,7 @@ export default function StoreInventory() {
           item_code: form.item_number || undefined,
           description: form.description, uom: form.uom,
           default_min_qty: minQ, default_reorder: minQ,
+          uom_attributes: form.uom_attributes || {},
         });
         const newId = res.data.data.item.id;
         if (qty > 0) {
@@ -205,6 +253,18 @@ export default function StoreInventory() {
               {lowStock > 0 ? <span className="font-semibold text-red-600">{lowStock} low stock</span> : <span>All stock levels OK</span>}
             </p>
           </div>
+          {isAdmin && (
+            <div className="ml-auto flex gap-2">
+              <button onClick={() => openStoreEdit(storeInfo)} title="Edit store"
+                className="flex items-center gap-1.5 px-3 py-2 bg-white/70 hover:bg-white text-gray-700 text-sm rounded-lg border border-gray-200">
+                <FiEdit3 className="w-4 h-4" /> Edit store
+              </button>
+              <button onClick={() => deleteStore(storeInfo)} title="Delete store"
+                className="flex items-center gap-1.5 px-3 py-2 bg-white/70 hover:bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                <FiTrash2 className="w-4 h-4" /> Delete store
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -290,30 +350,32 @@ export default function StoreInventory() {
       {/* Add / Edit Modal */}
       {showModal && storeInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
               <h3 className="font-bold text-lg text-gray-900">{editItem ? 'Edit Item' : 'Add Item'} — {storeInfo.name}</h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><FiX className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleSave} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Item Code (auto-generated if blank)</label>
-                <input value={form.item_number} disabled={!!editItem} onChange={(e) => setForm((f) => ({ ...f, item_number: e.target.value }))}
-                  placeholder="e.g. DRY-0001"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:bg-gray-100" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Description *</label>
-                <input required value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="e.g. All-purpose flour"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSave} className="p-5 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">UOM</label>
-                  <select value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value }))}
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Item Code (auto-generated if blank)</label>
+                  <input value={form.item_number} disabled={!!editItem} onChange={(e) => setForm((f) => ({ ...f, item_number: e.target.value }))}
+                    placeholder="e.g. DRY-0001"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:bg-gray-100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Description *</label>
+                  <input required value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="e.g. All-purpose flour"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Unit of Measure</label>
+                  <select value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value, uom_attributes: {} }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
-                    {UOM_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+                    {uoms.map((u) => <option key={u.code} value={u.code}>{u.name} ({u.code})</option>)}
                   </select>
                 </div>
                 <div>
@@ -321,16 +383,67 @@ export default function StoreInventory() {
                   <input type="number" min="0" step="0.01" value={form.quantity} onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Minimum Quantity</label>
+                  <input type="number" min="0" step="0.01" value={form.min_quantity} onChange={(e) => setForm((f) => ({ ...f, min_quantity: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Minimum Quantity (low-stock alert)</label>
-                <input type="number" min="0" step="0.01" value={form.min_quantity} onChange={(e) => setForm((f) => ({ ...f, min_quantity: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+
+              {/* Data-driven UOM details */}
+              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/60">
+                <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  📐 {uoms.find((u) => u.code === form.uom)?.name || form.uom} details
+                </div>
+                <UomFields uom={form.uom} value={form.uom_attributes} uoms={uoms}
+                  onChange={(next) => setForm((f) => ({ ...f, uom_attributes: next }))} />
               </div>
+
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeModal} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 disabled:opacity-50">
                   <FiSave className="w-4 h-4" /> {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Store Modal (admin) */}
+      {storeEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="font-bold text-lg text-gray-900">Edit Store</h3>
+              <button onClick={() => setStoreEdit(null)} className="text-gray-400 hover:text-gray-600"><FiX className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={saveStore} className="p-5 space-y-4">
+              <div className="grid grid-cols-4 gap-3">
+                <div className="col-span-3">
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Store name *</label>
+                  <input required value={storeEdit.name} onChange={(e) => setStoreEdit((s) => ({ ...s, name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Icon</label>
+                  <input value={storeEdit.icon} onChange={(e) => setStoreEdit((s) => ({ ...s, icon: e.target.value }))}
+                    placeholder="🍷" maxLength={4}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                <input value={storeEdit.description} onChange={(e) => setStoreEdit((s) => ({ ...s, description: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={storeEdit.is_active} onChange={(e) => setStoreEdit((s) => ({ ...s, is_active: e.target.checked }))} /> Active
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setStoreEdit(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={storeSaving} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 disabled:opacity-50">
+                  <FiSave className="w-4 h-4" /> {storeSaving ? 'Saving…' : 'Save store'}
                 </button>
               </div>
             </form>

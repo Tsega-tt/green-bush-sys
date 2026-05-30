@@ -7052,12 +7052,44 @@ app.get('/api/purchase-requisitions', (req, res) => {
 
 // POST /api/purchase-requisitions
 app.post('/api/purchase-requisitions', (req, res) => {
-  const { zone_id, item_name, item_code, supplier, quantity, unit_cost, notes, created_by_id, created_by_name } = req.body || {};
+  const {
+    zone_id, item_id, is_new_item, item_name, item_code, supplier, quantity, unit_cost, notes,
+    category, sub_category, item_type, uom, uom_attributes, specifications, storage_requirements,
+    is_perishable, track_batches, created_by_id, created_by_name
+  } = req.body || {};
+
   if (!zone_id || !String(item_name || '').trim() || !quantity || unit_cost == null) {
-    return res.status(400).json({ status: 'error', message: 'zone_id, item_name, quantity and unit_cost are required' });
+    return res.status(400).json({ status: 'error', message: 'zone_id, item, quantity and unit_cost are required' });
   }
   const zone = PR_ZONES.find(z => z.id === zone_id);
   if (!zone) return res.status(404).json({ status: 'error', message: 'Zone not found' });
+
+  let finalItemId = item_id ? parseInt(item_id, 10) : null;
+
+  // If new item, create it in MOCK_INVENTORY_ITEMS
+  if (is_new_item && !finalItemId) {
+    const newItemId = (MOCK_INVENTORY_ITEMS.reduce((m, i) => Math.max(m, i.id), 0) || 0) + 1;
+    const newItem = {
+      id: newItemId,
+      item_code: item_code || `AUTO-${newItemId}`,
+      description: String(item_name).trim(),
+      category: category || null,
+      sub_category: sub_category || null,
+      item_type: item_type || null,
+      uom: uom || 'pcs',
+      uom_attributes: uom_attributes || {},
+      is_perishable: !!is_perishable,
+      track_batches: !!track_batches,
+      specifications: specifications || null,
+      storage_requirements: storage_requirements || null,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    MOCK_INVENTORY_ITEMS.push(newItem);
+    finalItemId = newItemId;
+  }
+
   const id  = (MOCK_PURCHASE_REQUISITIONS.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
   const qty  = parseFloat(quantity);
   const cost = parseFloat(unit_cost);
@@ -7065,6 +7097,7 @@ app.post('/api/purchase-requisitions', (req, res) => {
   const pr = {
     id, req_number: `PR-${String(id).padStart(5, '0')}`,
     zone_id, zone_name: zone.name,
+    item_id: finalItemId,
     item_name: String(item_name).trim(), item_code: item_code || '', supplier: supplier || '',
     quantity: qty, approved_quantity: null, unit_cost: cost, estimated_cost: qty * cost,
     notes: notes || '', status: 'pending_fnb',

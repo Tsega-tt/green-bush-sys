@@ -58,11 +58,12 @@ const balances = {
 
   async listByStore(db, storeId, { lowOnly = false } = {}) {
     const { rows } = await db.query(
-      `SELECT b.*, i.description, i.item_code, i.uom, i.category,
+      `SELECT b.*, i.description, i.item_code, i.uom, i.category, i.uom_attributes,
               (b.quantity * b.weighted_avg_cost)::numeric(16,2) AS value
          FROM store_item_balances b
          JOIN inventory_items i ON i.id = b.item_id
         WHERE b.store_id = $1
+          AND i.deleted_at IS NULL
           AND ($2::boolean = false OR b.quantity <= b.min_quantity)
         ORDER BY i.description`,
       [storeId, lowOnly]

@@ -52,6 +52,17 @@ const stores = {
     );
     return rows[0] || null;
   },
+  /**
+   * Permanently delete a store. Clears the leaf balance rows first (they use
+   * ON DELETE RESTRICT); store_capabilities cascade and users.store_id nulls
+   * automatically. Throws FK error 23503 if protected history (ledger,
+   * transfers, recipes, purchases…) still references the store.
+   */
+  async hardDelete(client, id) {
+    await client.query(`DELETE FROM store_item_balances WHERE store_id = $1`, [id]);
+    const { rowCount } = await client.query(`DELETE FROM stores WHERE id = $1`, [id]);
+    return rowCount > 0;
+  },
   /** Directly set (or clear, with null) a store's manager. */
   async setManager(db, id, managerId) {
     const { rows } = await db.query(
@@ -133,10 +144,11 @@ const items = {
     const { rows } = await db.query(
       `INSERT INTO inventory_items
          (item_code, description, category, uom, is_perishable, track_batches,
-          default_min_qty, default_reorder)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+          default_min_qty, default_reorder, uom_attributes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [it.itemCode, it.description, it.category || null, it.uom || 'pcs',
-       !!it.isPerishable, !!it.trackBatches, it.defaultMinQty || 0, it.defaultReorder || 0]
+       !!it.isPerishable, !!it.trackBatches, it.defaultMinQty || 0, it.defaultReorder || 0,
+       JSON.stringify(it.uomAttributes || {})]
     );
     return rows[0];
   },
@@ -150,11 +162,13 @@ const items = {
          track_batches   = COALESCE($6, track_batches),
          default_min_qty = COALESCE($7, default_min_qty),
          default_reorder = COALESCE($8, default_reorder),
-         is_active       = COALESCE($9, is_active)
+         is_active       = COALESCE($9, is_active),
+         uom_attributes  = COALESCE($10, uom_attributes)
        WHERE id = $1 AND deleted_at IS NULL
        RETURNING *`,
       [id, patch.description, patch.category, patch.uom, patch.isPerishable,
-       patch.trackBatches, patch.defaultMinQty, patch.defaultReorder, patch.isActive]
+       patch.trackBatches, patch.defaultMinQty, patch.defaultReorder, patch.isActive,
+       patch.uomAttributes !== undefined ? JSON.stringify(patch.uomAttributes) : null]
     );
     return rows[0] || null;
   },
@@ -307,4 +321,56 @@ const servingSizes = {
   },
 };
 
-module.exports = { stores, capabilities, items, suppliers, thresholds, usersRepo, servingSizes };
+const uoms = {
+  /** All active UOMs, each with its ordered attribute schema. */
+  async listWithAttributes(db, { activeOnly = true } = {}) {
+    const { rows: defs } = await db.query(
+      `SELECT code, name, is_base, is_active FROM uom_definitions
+        WHERE ($1::boolean = false OR is_active = true)
+        ORDER BY is_base DESC, name`,
+      [activeOnly]
+    );
+    const { rows: attrs } = await db.query(
+      `SELECT uom_code, attr_key, label, input_type, unit, is_required, help_text, options, sort_order
+         FROM uom_attributes ORDER BY uom_code, sort_order, label`
+    );
+    const byCode = new Map(defs.map((d) => [d.code, { ...d, attributes: [] }]));
+    for (const a of attrs) { if (byCode.has(a.uom_code)) byCode.get(a.uom_code).attributes.push(a); }
+    return Array.from(byCode.values());
+  },
+  async getAttributes(db, code) {
+    const { rows } = await db.query(
+      `SELECT attr_key, label, input_type, unit, is_required, help_text, options, sort_order
+         FROM uom_attributes WHERE uom_code = $1 ORDER BY sort_order, label`,
+      [code]
+    );
+    return rows;
+  },
+  async getByCode(db, code) {
+    const { rows } = await db.query(`SELECT * FROM uom_definitions WHERE code = $1`, [code]);
+    return rows[0] || null;
+  },
+  async insertDefinition(db, d) {
+    const { rows } = await db.query(
+      `INSERT INTO uom_definitions (code, name, is_base, is_active) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [d.code, d.name, !!d.isBase, d.isActive !== false]
+    );
+    return rows[0];
+  },
+  async insertAttribute(db, a) {
+    const { rows } = await db.query(
+      `INSERT INTO uom_attributes (uom_code, attr_key, label, input_type, unit, is_required, help_text, options, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (uom_code, attr_key) DO UPDATE SET
+         label=EXCLUDED.label, input_type=EXCLUDED.input_type, unit=EXCLUDED.unit,
+         is_required=EXCLUDED.is_required, help_text=EXCLUDED.help_text,
+         options=EXCLUDED.options, sort_order=EXCLUDED.sort_order, updated_at=now()
+       RETURNING *`,
+      [a.uomCode, a.attrKey, a.label, a.inputType || 'number', a.unit || null,
+       !!a.isRequired, a.helpText || null, a.options ? JSON.stringify(a.options) : null, a.sortOrder || 0]
+    );
+    return rows[0];
+  },
+};
+
+module.exports = { stores, capabilities, items, suppliers, thresholds, usersRepo, servingSizes, uoms };

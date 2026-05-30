@@ -30,7 +30,8 @@ function mountInventory(app) {
   app.use('/api/inv', require('./http/recipeRoutes'));    // Phase 4
   app.use('/api/inv', require('./http/operationsRoutes')); // Phase 5
   app.use('/api/inv', require('./http/reportRoutes'));    // Phase 6/7
-  console.log('✅ Inventory PG module mounted at /api/inv (phases 0-7)');
+  app.use('/api/inv', require('./http/acceptanceRoutes')); // Phase 8 — item acceptance
+  console.log('✅ Inventory PG module mounted at /api/inv (phases 0-8)');
   return true;
 }
 

@@ -62,6 +62,7 @@ import Stores from './pages/inventory/Stores';
 import ItemsMaster from './pages/inventory/ItemsMaster';
 import RecipeBuilder from './pages/inventory/RecipeBuilder';
 import CafeMenuManagement from './pages/cafe/MenuManagement';
+import ItemAcceptance from './pages/inventory/ItemAcceptance';
 import Waste from './pages/inventory/Waste';
 
 // Protected Route Component
@@ -344,6 +345,14 @@ const DashboardRouter = () => {
           element={
             <ProtectedRoute allowedRoles={['admin', 'owner']}>
               <CafeMenuManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory-pg/acceptance"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'purchaser', 'store_admin', 'store_manager']}>
+              <ItemAcceptance />
             </ProtectedRoute>
           }
         />

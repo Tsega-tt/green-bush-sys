@@ -34,6 +34,36 @@ async function updateStore(id, patch, ctx) {
 }
 
 /**
+ * Permanently (hard) delete a store. Refuses if it still holds stock so
+ * inventory can't be silently lost. store_capabilities cascade and the manager
+ * link nulls out; if protected history (ledger, transfers, recipes, purchases)
+ * still references the store, the FK blocks deletion and we surface a clear
+ * message telling the caller to clear those records first.
+ */
+async function deleteStore(id, ctx) {
+  return withTransaction(async (client) => {
+    const before = await repos.stores.getById(client, id);
+    if (!before) throw Errors.notFound('Store');
+    const summary = await repos.stores.summary(client, id);
+    if (summary && Number(summary.total_quantity) > 0) {
+      throw Errors.businessRule('Store still holds stock — empty or transfer it out before deleting.');
+    }
+    if (before.manager_id) await repos.usersRepo.setStoreId(client, before.manager_id, null);
+    try {
+      await repos.stores.hardDelete(client, id);
+    } catch (e) {
+      if (e && e.code === '23503') {
+        throw Errors.businessRule('Store has inventory history or links (ledger, transfers, recipes, purchases) and cannot be permanently deleted. Remove those records first.');
+      }
+      throw e;
+    }
+    await repos.audit.insert(client, { ...actor(ctx), action: 'delete',
+      entityType: 'store', entityId: id, oldValue: before });
+    return before;
+  });
+}
+
+/**
  * Assign (or clear, with managerId=null) a store's manager. Enforces the
  * one-manager-per-store / one-store-per-manager rule and keeps users.store_id
  * in sync so store-scoping (enforceStoreScope) works automatically.
@@ -85,9 +115,70 @@ async function setCapabilities(storeId, caps, ctx) {
 }
 
 // ---------------- items ----------------
+// ---------------- units of measure (data-driven) ----------------
+/**
+ * Validate the user-entered uom_attributes against the UOM's schema and return
+ * a clean object to persist. Enforces required fields and numeric typing so the
+ * stored values are always trustworthy — driven entirely by the DB schema.
+ */
+async function validateUomAttributes(client, uomCode, raw) {
+  const input = raw && typeof raw === 'object' ? raw : {};
+  if (!uomCode) return {};
+  const schema = await repos.uoms.getAttributes(client, uomCode);
+  if (!schema.length) return {}; // UOM has no extra fields
+  const clean = {};
+  for (const a of schema) {
+    let v = input[a.attr_key];
+    const empty = v === undefined || v === null || v === '';
+    if (empty) {
+      if (a.is_required) throw Errors.validation(`${a.label} is required for unit "${uomCode}"`);
+      continue;
+    }
+    if (a.input_type === 'number') {
+      const n = Number(v);
+      if (!Number.isFinite(n)) throw Errors.validation(`${a.label} must be a number`);
+      if (n < 0) throw Errors.validation(`${a.label} cannot be negative`);
+      v = n;
+    } else if (a.input_type === 'select' && Array.isArray(a.options) && a.options.length && !a.options.includes(String(v))) {
+      throw Errors.validation(`${a.label} must be one of: ${a.options.join(', ')}`);
+    } else {
+      v = String(v);
+    }
+    clean[a.attr_key] = v;
+  }
+  return clean;
+}
+
+const listUoms = (opts) => repos.uoms.listWithAttributes(getPool(), opts);
+
+async function createUom(data, ctx) {
+  if (!data.code || !data.name) throw Errors.validation('code and name are required');
+  const code = String(data.code).trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+  return withTransaction(async (client) => {
+    if (await repos.uoms.getByCode(client, code)) throw Errors.conflict('UOM code already exists');
+    const uom = await repos.uoms.insertDefinition(client, { ...data, code });
+    for (const a of data.attributes || []) {
+      await repos.uoms.insertAttribute(client, { ...a, uomCode: code });
+    }
+    await repos.audit.insert(client, { ...actor(ctx), action: 'create', entityType: 'uom', entityId: uom.id, newValue: uom });
+    return uom;
+  });
+}
+
+async function addUomAttribute(code, attr, ctx) {
+  if (!attr.attrKey || !attr.label) throw Errors.validation('attr_key and label are required');
+  return withTransaction(async (client) => {
+    if (!(await repos.uoms.getByCode(client, code))) throw Errors.notFound('UOM');
+    const row = await repos.uoms.insertAttribute(client, { ...attr, uomCode: code });
+    await repos.audit.insert(client, { ...actor(ctx), action: 'update', entityType: 'uom', entityId: code, newValue: row });
+    return row;
+  });
+}
+
 async function createItem(data, ctx) {
   if (!data.description) throw Errors.validation('description is required');
   return withTransaction(async (client) => {
+    data.uomAttributes = await validateUomAttributes(client, data.uom, data.uomAttributes);
     let code = data.itemCode && String(data.itemCode).trim();
     if (code && (await repos.items.getByCode(client, code))) throw Errors.conflict('item_code already exists');
     if (!code) {
@@ -106,6 +197,11 @@ async function updateItem(id, patch, ctx) {
   return withTransaction(async (client) => {
     const before = await repos.items.getById(client, id);
     if (!before) throw Errors.notFound('Item');
+    // Re-validate UOM attributes against the effective UOM (new or existing).
+    if (patch.uomAttributes !== undefined || patch.uom !== undefined) {
+      const effectiveUom = patch.uom || before.uom;
+      patch.uomAttributes = await validateUomAttributes(client, effectiveUom, patch.uomAttributes);
+    }
     const item = await repos.items.update(client, id, patch);
     await repos.audit.insert(client, { ...actor(ctx), action: 'update',
       entityType: 'inventory_item', entityId: id, oldValue: before, newValue: item });
@@ -195,6 +291,7 @@ const reads = {
   storeSummary: (id) => repos.stores.summary(getPool(), id),
   listManagers: () => repos.usersRepo.listManagers(getPool()),
   listServingSizes: (opts) => repos.servingSizes.list(getPool(), opts),
+  listUoms,
   listCapabilities: (storeId) => repos.capabilities.listByStore(getPool(), storeId),
   listItems: (q) => repos.items.list(getPool(), q),
   listSuppliers: (q) => repos.suppliers.list(getPool(), q),
@@ -202,8 +299,9 @@ const reads = {
 };
 
 module.exports = {
-  createStore, updateStore, assignManager, setCapabilities,
+  createStore, updateStore, deleteStore, assignManager, setCapabilities,
   createServingSize, updateServingSize,
+  createUom, addUomAttribute,
   createItem, updateItem, deleteItem,
   createSupplier, updateSupplier,
   replaceThresholds, reads,

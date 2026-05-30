@@ -23,7 +23,8 @@ import {
   FiSend,
   FiGrid,
   FiFileText,
-  FiTruck
+  FiTruck,
+  FiCheckCircle
 } from 'react-icons/fi';
 import BranchBadge from '../common/BranchBadge';
 
@@ -134,6 +135,7 @@ const DashboardLayout = ({ children }) => {
       { name: 'Approvals',        href: '/dashboard/inventory-pg/approvals',     icon: FiClipboard,  roles: ['fnb_manager', 'owner', 'admin'] },
       { name: 'Purchase Orders',  href: '/dashboard/inventory-pg/purchase-orders', icon: FiClipboard, roles: ['purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Receive Goods',    href: '/dashboard/inventory-pg/goods-receipts', icon: FiTruck,     roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
+      { name: 'Item Acceptance',  href: '/dashboard/inventory-pg/acceptance',     icon: FiCheckCircle, roles: ['store_admin', 'store_manager', 'purchaser', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Waste',            href: '/dashboard/inventory-pg/waste',         icon: FiClock,      roles: ['store_admin', 'store_manager', 'fnb_manager', 'owner', 'admin'] },
       { name: 'Stores Admin',     href: '/dashboard/inventory-pg/stores',        icon: FiGrid,       roles: ['admin'] },
       { name: 'Suppliers',        href: '/dashboard/inventory-pg/suppliers',     icon: FiUsers,      roles: ['purchaser', 'fnb_manager', 'admin'] },
