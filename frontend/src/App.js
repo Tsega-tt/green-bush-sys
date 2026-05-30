@@ -83,7 +83,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
       if (user?.role === 'cafe_waiter') return "/waiter/create-order";
       if (user?.role === 'bakery_employee') return "/bakery/create-order";
       if (user?.role === 'store_manager') return "/dashboard/inventory-pg";
-      if (user?.role === 'purchaser') return "/dashboard/inventory-pg/purchasing";
+      if (user?.role === 'purchaser') return "/dashboard/inventory-pg/purchase-requests";
       return "/dashboard";
     };
     return <Navigate to={getHomePath()} replace />;
@@ -279,7 +279,7 @@ const DashboardRouter = () => {
         <Route
           path="inventory-pg/purchasing"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
               <PurchasingDashboard />
             </ProtectedRoute>
           }
@@ -295,7 +295,7 @@ const DashboardRouter = () => {
         <Route
           path="inventory-pg/purchase-orders"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'purchaser']}>
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager']}>
               <PurchaseOrders />
             </ProtectedRoute>
           }
@@ -303,7 +303,7 @@ const DashboardRouter = () => {
         <Route
           path="inventory-pg/goods-receipts"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager', 'purchaser']}>
+            <ProtectedRoute allowedRoles={['admin', 'owner', 'fnb_manager', 'store_admin', 'store_manager']}>
               <GoodsReceipts />
             </ProtectedRoute>
           }
@@ -470,7 +470,7 @@ const AppContent = () => {
       case 'store_manager':
         return "/dashboard/inventory-pg";
       case 'purchaser':
-        return "/dashboard/inventory-pg/purchasing";
+        return "/dashboard/inventory-pg/purchase-requests";
       default:
         return "/dashboard";
     }
