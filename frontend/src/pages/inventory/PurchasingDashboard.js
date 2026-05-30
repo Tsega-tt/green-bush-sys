@@ -10,10 +10,15 @@ export default function PurchasingDashboard() {
   const nav = useNavigate();
   const pr = useApiResource(() => inventoryApi.pr.list({ status: 'pending_fnb' }).then((r) => r.data.data.requisitions || []), []);
   const prOwner = useApiResource(() => inventoryApi.pr.list({ status: 'pending_owner' }).then((r) => r.data.data.requisitions || []), []);
+  // Approved PRs awaiting the purchaser to raise a PO (approved + partially_approved).
+  const prReady = useApiResource(() => Promise.all([
+    inventoryApi.pr.list({ status: 'approved' }),
+    inventoryApi.pr.list({ status: 'partially_approved' }),
+  ]).then(([a, b]) => [...(a.data.data.requisitions || []), ...(b.data.data.requisitions || [])]), []);
   const po = useApiResource(() => inventoryApi.po.list({ status: 'issued' }).then((r) => r.data.data.orders || []), []);
   const grn = useApiResource(() => inventoryApi.grn.list({ status: 'draft' }).then((r) => r.data.data.receipts || []), []);
 
-  const refetchAll = useCallback(() => { pr.refetch(); prOwner.refetch(); po.refetch(); grn.refetch(); }, [pr, prOwner, po, grn]);
+  const refetchAll = useCallback(() => { pr.refetch(); prOwner.refetch(); prReady.refetch(); po.refetch(); grn.refetch(); }, [pr, prOwner, prReady, po, grn]);
   useInventoryEvents(useCallback((t) => { if (['pr.changed', 'po.changed', 'grn.changed'].includes(t)) refetchAll(); }, [refetchAll]));
 
   return (
@@ -24,11 +29,32 @@ export default function PurchasingDashboard() {
         <Btn onClick={() => nav(`${base}/goods-receipts`)}>Receive goods</Btn>
       </PageHeader>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <StatCard label="PRs awaiting F&B" value={(pr.data || []).length} accent={(pr.data || []).length ? 'text-amber-600' : ''} onClick={() => nav(`${base}/approvals`)} />
         <StatCard label="PRs awaiting owner" value={(prOwner.data || []).length} accent={(prOwner.data || []).length ? 'text-orange-600' : ''} onClick={() => nav(`${base}/approvals`)} />
+        <StatCard label="Approved — ready to order" value={(prReady.data || []).length} accent={(prReady.data || []).length ? 'text-green-600' : ''} onClick={() => nav(`${base}/purchase-orders`)} />
         <StatCard label="Open orders" value={(po.data || []).length} onClick={() => nav(`${base}/purchase-orders`)} />
         <StatCard label="Receipts to post" value={(grn.data || []).length} accent={(grn.data || []).length ? 'text-blue-600' : ''} onClick={() => nav(`${base}/goods-receipts`)} />
+      </div>
+
+      {/* Approved PRs the purchaser must now turn into Purchase Orders */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-semibold">Approved requests — ready for Purchase Order</h2>
+          <Btn variant="primary" onClick={() => nav(`${base}/purchase-orders`)}>Create order</Btn>
+        </div>
+        <DataTable
+          keyField="id"
+          columns={[
+            { key: 'pr_number', label: 'PR', render: (r) => <span className="font-mono text-xs">{r.pr_number}</span> },
+            { key: 'store_name', label: 'Store' },
+            { key: 'estimated_total', label: 'Est.', align: 'right', render: (r) => fmtMoney(r.estimated_total) },
+            { key: 'status', label: 'Status', render: (r) => <StatusBadge value={r.status} /> },
+            { key: 'actions', label: '', align: 'right', render: () => <Btn onClick={() => nav(`${base}/purchase-orders`)}>Order →</Btn> },
+          ]}
+          rows={prReady.data || []} loading={prReady.loading} error={prReady.error} onRetry={refetchAll}
+          empty="No approved requests waiting — they appear here once F&B (and owner, if required) approve."
+        />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

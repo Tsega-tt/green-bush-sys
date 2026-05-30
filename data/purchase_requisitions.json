@@ -714,5 +714,93 @@
         "note": "Approved for Purchase Order"
       }
     ]
+  },
+  {
+    "id": 20,
+    "req_number": "PR-00020",
+    "store_id": 1,
+    "store_name": "Main Store",
+    "purchaser_id": 3,
+    "item_id": null,
+    "item_name": "Workflow Test Item",
+    "item_code": "",
+    "supplier": "Test Supplier",
+    "quantity": 30,
+    "approved_quantity": 30,
+    "unit_cost": 150,
+    "estimated_cost": 4500,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 1,
+    "created_by_name": "Store Manager",
+    "created_at": "2026-05-30T03:49:13.682Z",
+    "updated_at": "2026-05-30T03:49:14.605Z",
+    "approved_by_id": 2,
+    "approved_by_name": "F&B Manager",
+    "approved_at": "2026-05-30T03:49:14.605Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 1,
+        "actor_name": "Store Manager",
+        "timestamp": "2026-05-30T03:49:13.682Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 2,
+        "actor_name": "F&B Manager",
+        "timestamp": "2026-05-30T03:49:14.605Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "req_number": "PR-00021",
+    "store_id": 4,
+    "store_name": "Bar Store",
+    "purchaser_id": 25,
+    "item_id": 25,
+    "item_name": "akjsdnckjsd",
+    "item_code": "DRY-001",
+    "supplier": "",
+    "quantity": 4,
+    "approved_quantity": 4,
+    "unit_cost": 1.99,
+    "estimated_cost": 7.96,
+    "notes": "",
+    "status": "approved",
+    "created_by_id": 40,
+    "created_by_name": "tsegisha",
+    "created_at": "2026-05-30T03:50:56.282Z",
+    "updated_at": "2026-05-30T03:51:14.629Z",
+    "approved_by_id": 23,
+    "approved_by_name": "Inv FnB",
+    "approved_at": "2026-05-30T03:51:14.629Z",
+    "rejected_by_id": null,
+    "rejected_by_name": null,
+    "rejected_at": null,
+    "rejection_note": null,
+    "audit_log": [
+      {
+        "action": "created",
+        "actor_id": 40,
+        "actor_name": "tsegisha",
+        "timestamp": "2026-05-30T03:50:56.282Z",
+        "note": "PR created"
+      },
+      {
+        "action": "approved",
+        "actor_id": 23,
+        "actor_name": "Inv FnB",
+        "timestamp": "2026-05-30T03:51:14.629Z",
+        "note": "Approved for Purchase Order"
+      }
+    ]
   }
 ]

@@ -108,7 +108,9 @@ const UserManagement = () => {
       kitchen_staff: 'Kitchen Staff',
       hr_admin: 'HR Admin',
       store_admin: 'Store Admin',
+      store_manager: 'Store Manager',
       fnb_manager: 'F&B Manager',
+      purchaser: 'Purchaser',
       owner: 'Owner',
       item_request: 'Item Requester',
     };
@@ -125,7 +127,9 @@ const UserManagement = () => {
       kitchen_staff: 'bg-red-500 text-white',
       hr_admin: 'bg-pink-500 text-white',
       store_admin: 'bg-teal-500 text-white',
+      store_manager: 'bg-teal-600 text-white',
       fnb_manager: 'bg-amber-500 text-white',
+      purchaser: 'bg-indigo-500 text-white',
       owner: 'bg-yellow-700 text-white',
       item_request: 'bg-cyan-600 text-white',
     };
@@ -350,7 +354,9 @@ const UserManagement = () => {
             <option value="admin">Administrator</option>
             <option value="hr_admin">HR Admin</option>
             <option value="store_admin">Store Admin</option>
+            <option value="store_manager">Store Manager</option>
             <option value="fnb_manager">F&B Manager</option>
+            <option value="purchaser">Purchaser</option>
             <option value="bakery_employee">Bakery Employee</option>
             <option value="cafe_waiter">Café Waiter</option>
             <option value="cashier">Cashier</option>
@@ -615,7 +621,9 @@ const UserManagement = () => {
                   <option value="admin">Administrator</option>
                   <option value="hr_admin">HR Admin</option>
                   <option value="store_admin">Store Admin</option>
+                  <option value="store_manager">Store Manager</option>
                   <option value="fnb_manager">F&B Manager</option>
+                  <option value="purchaser">Purchaser</option>
                   <option value="bakery_employee">Bakery Employee</option>
                   <option value="cafe_waiter">Café Waiter</option>
                   <option value="cashier">Cashier</option>

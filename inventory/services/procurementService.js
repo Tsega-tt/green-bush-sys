@@ -43,9 +43,18 @@ async function createPR(p) {
     });
     let i = 1;
     for (const l of p.lines) {
+      // Description/uom are required on a line; when the caller only sent an
+      // item_id, derive them from the inventory master so the line is valid.
+      let description = l.description;
+      let uom = l.uom;
+      if ((!description || !uom) && l.itemId) {
+        const item = await repos.items.getById(client, l.itemId);
+        if (item) { description = description || item.description; uom = uom || item.uom; }
+      }
+      if (!description) throw Errors.validation(`Line ${i}: item description is required`);
       await prRepo.addLine(client, header.id, {
-        lineNo: i, itemId: l.itemId || null, description: l.description,
-        uom: l.uom, quantityRequested: qty(l.quantityRequested),
+        lineNo: i, itemId: l.itemId || null, description,
+        uom, quantityRequested: qty(l.quantityRequested),
         estUnitCost: cost(l.estUnitCost), estLineCost: money(num(l.quantityRequested) * num(l.estUnitCost)),
       });
       i += 1;
@@ -155,8 +164,16 @@ async function createPO(p) {
     });
     let i = 1;
     for (const l of p.lines) {
+      // Derive description/uom from the item master when the caller omitted them.
+      let description = l.description;
+      let uom = l.uom;
+      if ((!description || !uom) && l.itemId) {
+        const item = await repos.items.getById(client, l.itemId);
+        if (item) { description = description || item.description; uom = uom || item.uom; }
+      }
+      if (!description) throw Errors.validation(`Line ${i}: item description is required`);
       await poRepo.addLine(client, header.id, {
-        lineNo: i, itemId: l.itemId, description: l.description, uom: l.uom,
+        lineNo: i, itemId: l.itemId, description, uom,
         quantityOrdered: qty(l.quantityOrdered), unitCost: cost(l.unitCost),
         lineTotal: money(num(l.quantityOrdered) * num(l.unitCost)),
       });
